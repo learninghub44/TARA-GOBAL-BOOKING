@@ -14,7 +14,8 @@ KYC pipeline sized for local business verification.
 > an account tied to a tenant; vendors and their staff operate inside a tenant.
 
 ---
-
+YOU CAN BUY ME A COFEE USING THE LINK BELOW AND APPRECIATE YOU 
+https://paystack.shop/pay/dzio0eaefa
 ## Table of contents
 
 - [What TARA does](#what-tara-does)
