@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requirePlatformAdmin } from '@/lib/rbac/utils'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { AD_SCOPED_TYPES } from '@/lib/promotions/service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,6 +11,9 @@ export async function GET(request: NextRequest) {
     const status = params.get('status')
     const promotionType = params.get('promotion_type')
     const tenantId = params.get('tenant_id')
+    // Convenience filter for the ad-review queue: pending payments on
+    // banner/newsletter/search campaigns awaiting a creative review.
+    const adScoped = params.get('ad_scoped') === 'true'
     const page = Math.max(1, parseInt(params.get('page') || '1', 10))
     const pageSize = Math.min(100, Math.max(1, parseInt(params.get('page_size') || '25', 10)))
 
@@ -22,6 +26,7 @@ export async function GET(request: NextRequest) {
     if (status) query = query.eq('status', status)
     if (promotionType) query = query.eq('promotion_type', promotionType)
     if (tenantId) query = query.eq('tenant_id', tenantId)
+    if (adScoped) query = query.in('promotion_type', Array.from(AD_SCOPED_TYPES))
 
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
