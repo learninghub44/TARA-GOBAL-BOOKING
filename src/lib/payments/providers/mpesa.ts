@@ -31,6 +31,16 @@ interface MpesaVerificationResponse {
   }
 }
 
+// M-Pesa (Daraja) has no webhook signature, so a callback body alone cannot
+// be trusted -- anyone who learns/guesses a CheckoutRequestID could POST a
+// fake "success" callback. mpesaBaseUrl/verifyMpesaSTKPushStatus let the
+// webhook independently re-confirm the transaction with Safaricom itself
+// before it's ever treated as paid, the same way pesapal.ts's verifyPesapalPayment
+// re-checks with Pesapal rather than trusting the IPN body.
+function mpesaBaseUrl(): string {
+  return process.env.MPESA_ENV === 'live' ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke'
+}
+
 export async function generateMpesaToken(): Promise<string> {
   try {
     const auth = Buffer.from(
@@ -38,7 +48,7 @@ export async function generateMpesaToken(): Promise<string> {
     ).toString('base64')
 
     const response = await fetch(
-      'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+      `${mpesaBaseUrl()}/oauth/v1/generate?grant_type=client_credentials`,
       {
         method: 'GET',
         headers: {
@@ -70,7 +80,7 @@ export async function initiateMpesaSTKPush(
     ).toString('base64')
 
     const response = await fetch(
-      'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+      `${mpesaBaseUrl()}/mpesa/stkpush/v1/processrequest`,
       {
         method: 'POST',
         headers: {
@@ -101,6 +111,61 @@ export async function initiateMpesaSTKPush(
   } catch (error) {
     console.error('M-Pesa STK push error:', error)
     throw error
+  }
+}
+
+export interface MpesaQueryResult {
+  verified: boolean
+  success: boolean
+  resultCode?: string
+  error?: string
+}
+
+/**
+ * Re-confirms a transaction directly with Safaricom's STK Push Query API
+ * using the CheckoutRequestID from the callback. This is the source of
+ * truth -- the callback body itself must never be trusted on its own since
+ * Daraja callbacks aren't signed.
+ */
+export async function verifyMpesaSTKPushStatus(checkoutRequestId: string): Promise<MpesaQueryResult> {
+  try {
+    const token = await generateMpesaToken()
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, -4)
+    const password = Buffer.from(
+      `${process.env.MPESA_SHORTCODE}${process.env.MPESA_PASSKEY}${timestamp}`
+    ).toString('base64')
+
+    const response = await fetch(`${mpesaBaseUrl()}/mpesa/stkpushquery/v1/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        BusinessShortCode: process.env.MPESA_SHORTCODE,
+        Password: password,
+        Timestamp: timestamp,
+        CheckoutRequestID: checkoutRequestId,
+      }),
+    })
+
+    if (!response.ok) {
+      // A 500 from Safaricom here often means "still processing" as much as
+      // it means "failed" -- treat as unverified rather than success either way.
+      return { verified: false, success: false, error: `Query API error: ${response.statusText}` }
+    }
+
+    const data = await response.json()
+    const resultCode = String(data.ResultCode ?? '')
+
+    return {
+      verified: true,
+      success: resultCode === '0',
+      resultCode,
+    }
+  } catch (error) {
+    console.error('M-Pesa STK query error:', error)
+    return { verified: false, success: false, error: error instanceof Error ? error.message : 'Unknown error' }
   }
 }
 

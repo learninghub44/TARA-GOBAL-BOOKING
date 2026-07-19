@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requirePlatformAdminRole } from '@/lib/rbac/utils'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyPayment, processPaymentWebhook, type PaymentProvider } from '@/lib/payments/service'
+import { verifyCronSecret } from '@/lib/security/cron-auth'
 
 // Also callable by a scheduled job via CRON_SECRET, in addition to an
 // authenticated platform admin from the dashboard.
 async function authorize(request: NextRequest): Promise<{ actorId: string | null }> {
-  const cronSecret = request.headers.get('x-cron-secret')
-  if (cronSecret && process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET) {
+  if (verifyCronSecret(request)) {
     return { actorId: null }
   }
   const admin = await requirePlatformAdminRole(['finance_admin'])

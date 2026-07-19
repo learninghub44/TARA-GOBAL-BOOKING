@@ -1,11 +1,22 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireTenantAuth } from '@/lib/rbac/utils'
 import { initiateDiditVerification, shouldFallbackToManualReview } from '@/lib/kyc/didit'
-import { NextResponse } from 'next/server'
+import { enforceRateLimit } from '@/lib/security/rate-limit'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const limited = await enforceRateLimit(request, { name: 'kyc:verify', max: 5, windowSeconds: 3600 })
+  if (limited) return limited
+
   try {
+    // Previously accepted tenantId from the request body with no auth check,
+    // so any caller could submit (or overwrite) KYC data for any tenant.
+    // Require a session and scope tenantId to the caller's own tenant.
+    const authedUser = await requireTenantAuth()
+
     const body = await request.json()
-    const { documentType, documentNumber, expiryDate, firstName, lastName, dateOfBirth, country, tenantId } = body
+    const { documentType, documentNumber, expiryDate, firstName, lastName, dateOfBirth, country } = body
+    const tenantId = authedUser.tenant_id
 
     if (!documentType || !documentNumber || !expiryDate || !firstName || !lastName || !dateOfBirth || !country || !tenantId) {
       return NextResponse.json(
@@ -96,6 +107,13 @@ export async function POST(request: Request) {
       status: diditResponse.status,
     })
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    if (message === 'Unauthorized' || message === 'Account is inactive') {
+      return NextResponse.json({ error: message }, { status: 401 })
+    }
+    if (message === 'No tenant associated with user') {
+      return NextResponse.json({ error: message }, { status: 400 })
+    }
     console.error('KYC verification error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },

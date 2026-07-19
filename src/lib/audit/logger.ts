@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export interface AuditLogEntry {
   tenant_id?: string
@@ -14,8 +14,8 @@ export interface AuditLogEntry {
 
 export async function createAuditLog(entry: AuditLogEntry): Promise<void> {
   try {
-    const supabase = await createClient()
-    
+    const supabase = createAdminClient()
+
     const { error } = await supabase
       .from('audit_logs')
       .insert({

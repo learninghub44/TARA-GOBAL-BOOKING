@@ -4,10 +4,14 @@ import { requireTenant } from '@/lib/tenant/utils'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPlan } from '@/lib/payments/plans'
 import { initializePaymentWithFallback, type PaymentProvider } from '@/lib/payments/service'
+import { enforceRateLimit } from '@/lib/security/rate-limit'
 
 const VALID_PROVIDERS: PaymentProvider[] = ['paystack', 'pesapal', 'mpesa']
 
 export async function POST(request: NextRequest) {
+  const limited = await enforceRateLimit(request, { name: 'vendor:subscription:checkout', max: 10, windowSeconds: 60 })
+  if (limited) return limited
+
   try {
     const body = await request.json()
     const { plan_id, phone_number, provider } = body

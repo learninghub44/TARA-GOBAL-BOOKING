@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendSubscriptionReminderEmail } from '@/lib/email/resend'
+import { verifyCronSecret } from '@/lib/security/cron-auth'
+import { enforceRateLimit } from '@/lib/security/rate-limit'
 
 
 const REMINDER_WINDOW_DAYS = 5
@@ -13,8 +15,10 @@ const REMINDER_WINDOW_DAYS = 5
  *  2. Flip subscriptions/tenants past their end_date to 'expired'.
  */
 export async function POST(request: NextRequest) {
-  const cronSecret = request.headers.get('x-cron-secret')
-  if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
+  const limited = await enforceRateLimit(request, { name: 'cron:subscriptions', max: 10, windowSeconds: 60 })
+  if (limited) return limited
+
+  if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

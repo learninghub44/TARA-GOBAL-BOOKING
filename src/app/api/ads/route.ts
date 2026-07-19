@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { enforceRateLimit } from '@/lib/security/rate-limit'
 
 const VALID_AD_TYPES = [
   'homepage_banner',
@@ -23,6 +24,9 @@ const PUBLIC_FIELDS =
  * excluded.
  */
 export async function GET(request: NextRequest) {
+  const limited = await enforceRateLimit(request, { name: 'ads:list', max: 60, windowSeconds: 60 })
+  if (limited) return limited
+
   try {
     const params = request.nextUrl.searchParams
     const adType = params.get('placement') || params.get('ad_type')

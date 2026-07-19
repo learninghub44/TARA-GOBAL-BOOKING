@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requirePermission } from '@/lib/rbac/utils'
 import { requireActiveSubscription } from '@/lib/tenant/utils'
 import { purchasePromotion } from '@/lib/promotions/service'
+import { enforceRateLimit } from '@/lib/security/rate-limit'
 import type { PaymentProvider } from '@/lib/payments/service'
 import type { ListingType } from '@/types/listings'
 
@@ -9,6 +10,9 @@ const VALID_PROVIDERS: PaymentProvider[] = ['paystack', 'pesapal', 'mpesa']
 const VALID_LISTING_TYPES: ListingType[] = ['tour', 'travel_service', 'car_rental', 'adventure']
 
 export async function POST(request: NextRequest) {
+  const limited = await enforceRateLimit(request, { name: 'vendor:promotions:purchase', max: 10, windowSeconds: 60 })
+  if (limited) return limited
+
   try {
     const body = await request.json()
     const { package_slug, listing_id, listing_type, destination_page_id, advertisement_id, provider, phone_number } = body

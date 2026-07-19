@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { enforceRateLimit } from '@/lib/security/rate-limit'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const limited = await enforceRateLimit(request, { name: 'ads:view', max: 30, windowSeconds: 60 })
+  if (limited) return limited
+
   try {
     const { id } = await params
     const supabase = createAdminClient()

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyPayment, processPaymentWebhook } from '@/lib/payments/service'
+import { enforceRateLimit } from '@/lib/security/rate-limit'
 
 // Pesapal's IPN just tells you "something happened for this order_tracking_id" —
 // it does not carry the final status, so we re-verify with Pesapal before recording it.
 export async function POST(request: NextRequest) {
+  const limited = await enforceRateLimit(request, { name: 'webhook:pesapal', max: 60, windowSeconds: 60 })
+  if (limited) return limited
+
   try {
     const body = await request.json().catch(() => ({}))
     const orderTrackingId: string | null =

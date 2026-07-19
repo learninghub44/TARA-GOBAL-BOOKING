@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getListingById, listingPrice, tableForType } from '@/lib/listings/queries'
+import { enforceRateLimit } from '@/lib/security/rate-limit'
 import type { ListingType } from '@/types/listings'
 
 const VALID_TYPES: ListingType[] = ['tour', 'travel_service', 'car_rental', 'adventure']
 
 export async function POST(request: NextRequest) {
+  // Public, unauthenticated endpoint -- rate limit by IP to stop booking spam / DoS.
+  const limited = await enforceRateLimit(request, { name: 'bookings:create', max: 5, windowSeconds: 60 })
+  if (limited) return limited
+
   try {
-    const body = await request.json()
+    const body = await request.json().catch(() => null)
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+
     const {
       listing_id,
       listing_type,
@@ -22,6 +31,14 @@ export async function POST(request: NextRequest) {
 
     if (!listing_id || !listing_type || !customer_name || !customer_email || !start_date) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    if (typeof customer_name !== 'string' || typeof customer_email !== 'string') {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+
+    if (customer_name.length > 200 || (special_requests && String(special_requests).length > 2000)) {
+      return NextResponse.json({ error: 'Field too long' }, { status: 400 })
     }
 
     if (!VALID_TYPES.includes(listing_type)) {
@@ -39,7 +56,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Listing is not available' }, { status: 404 })
     }
 
-    const participants = Math.max(1, Number(number_of_participants) || 1)
+    const participants = Math.min(1000, Math.max(1, Number(number_of_participants) || 1))
     const unitPrice = listingPrice(listing_type, listing)
 
     let totalAmount = unitPrice

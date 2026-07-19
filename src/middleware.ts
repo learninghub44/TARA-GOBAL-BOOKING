@@ -1,6 +1,15 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  response.headers.set('X-DNS-Prefetch-Control', 'off')
+  return response
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -54,16 +63,16 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       const redirectUrl = new URL(portalLogin, request.url)
       redirectUrl.searchParams.set('redirect', pathname)
-      return NextResponse.redirect(redirectUrl)
+      return applySecurityHeaders(NextResponse.redirect(redirectUrl))
     }
 
-    return supabaseResponse
+    return applySecurityHeaders(supabaseResponse)
   }
 
   if (isAdminPortalLoginPage && user) {
     // Already signed in -- the login form itself validates portal access and
     // redirects; here we just avoid trapping a logged-in admin on a login page.
-    return supabaseResponse
+    return applySecurityHeaders(supabaseResponse)
   }
 
   // Protected routes (non-admin)
@@ -75,7 +84,7 @@ export async function middleware(request: NextRequest) {
   if (isProtectedPath && !user) {
     const redirectUrl = new URL('/auth/login', request.url)
     redirectUrl.searchParams.set('redirect', request.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
+    return applySecurityHeaders(NextResponse.redirect(redirectUrl))
   }
 
   // Auth routes (redirect if already logged in)
@@ -85,10 +94,10 @@ export async function middleware(request: NextRequest) {
   )
 
   if (isAuthPath && user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return applySecurityHeaders(NextResponse.redirect(new URL('/dashboard', request.url)))
   }
 
-  return supabaseResponse
+  return applySecurityHeaders(supabaseResponse)
 }
 
 export const config = {
