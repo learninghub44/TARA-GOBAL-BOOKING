@@ -35,6 +35,7 @@ export default function VendorDashboardPage() {
   })
 
   const [recentBookings, setRecentBookings] = useState<any[]>([])
+  const [listings, setListings] = useState<any[]>([])
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'approved' | 'rejected' | 'manual_review'>('pending')
 
   const supabase = createClient()
@@ -75,20 +76,23 @@ export default function VendorDashboardPage() {
         setVerificationStatus(tenant.verification_status)
       }
 
-      // Get stats
+      // Get stats + full rows for rendering real listing cards (no mock data)
+      const listingCols = 'id, title, slug, primary_image_url, is_active, view_count, rating, listing_status'
       const [toursCount, travelServicesCount, carRentalsCount, adventuresCount] = await Promise.all([
-        supabase.from('tours').select('id, is_active, view_count, rating').eq('tenant_id', userData.tenant_id),
-        supabase.from('travel_services').select('id, is_active, view_count, rating').eq('tenant_id', userData.tenant_id),
-        supabase.from('car_rentals').select('id, is_active, view_count, rating').eq('tenant_id', userData.tenant_id),
-        supabase.from('adventure_activities').select('id, is_active, view_count, rating').eq('tenant_id', userData.tenant_id),
+        supabase.from('tours').select(listingCols).eq('tenant_id', userData.tenant_id),
+        supabase.from('travel_services').select(listingCols).eq('tenant_id', userData.tenant_id),
+        supabase.from('car_rentals').select(listingCols).eq('tenant_id', userData.tenant_id),
+        supabase.from('adventure_activities').select(listingCols).eq('tenant_id', userData.tenant_id),
       ])
 
       const allListings = [
-        ...toursCount.data || [],
-        ...travelServicesCount.data || [],
-        ...carRentalsCount.data || [],
-        ...adventuresCount.data || [],
+        ...(toursCount.data || []).map((l: any) => ({ ...l, type: 'tour' })),
+        ...(travelServicesCount.data || []).map((l: any) => ({ ...l, type: 'travel_service' })),
+        ...(carRentalsCount.data || []).map((l: any) => ({ ...l, type: 'car_rental' })),
+        ...(adventuresCount.data || []).map((l: any) => ({ ...l, type: 'adventure' })),
       ]
+
+      setListings(allListings)
 
       const totalListings = allListings.length
       const activeListings = allListings.filter((l: any) => l.is_active).length
@@ -229,20 +233,26 @@ export default function VendorDashboardPage() {
           <TabsContent value="listings" className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">My Listings</h2>
-              <div className="flex gap-2">
-                <Link href="/vendor/tours/new">
+              <div className="flex gap-2 flex-wrap">
+                <Link href="/vendor/listings/new?type=tour">
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Tour
                   </Button>
                 </Link>
-                <Link href="/vendor/car-rentals/new">
+                <Link href="/vendor/listings/new?type=travel_service">
+                  <Button variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Travel Service
+                  </Button>
+                </Link>
+                <Link href="/vendor/listings/new?type=car_rental">
                   <Button variant="outline">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Car Rental
                   </Button>
                 </Link>
-                <Link href="/vendor/adventures/new">
+                <Link href="/vendor/listings/new?type=adventure">
                   <Button variant="outline">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Adventure
@@ -257,29 +267,39 @@ export default function VendorDashboardPage() {
                   <div className="text-6xl mb-4">📝</div>
                   <h3 className="text-lg font-semibold mb-2">No listings yet</h3>
                   <p className="text-gray-600 mb-4">Create your first listing to start receiving bookings</p>
-                  <Link href="/vendor/tours/new">
+                  <Link href="/vendor/listings/new?type=tour">
                     <Button>Create First Listing</Button>
                   </Link>
                 </CardContent>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Placeholder for listing cards - will be populated with actual data */}
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="h-40 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 flex items-center justify-center">
-                      <span className="text-4xl">🏔️</span>
-                    </div>
-                    <h3 className="font-semibold mb-2">Sample Tour</h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span>4.5</span>
-                      <span>•</span>
-                      <span>128 views</span>
-                    </div>
-                    <Badge variant="default">Active</Badge>
-                  </CardContent>
-                </Card>
+                {listings.map((listing) => (
+                  <Card key={`${listing.type}-${listing.id}`}>
+                    <CardContent className="p-6">
+                      <div className="h-40 rounded-lg mb-4 overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600">
+                        {listing.primary_image_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={listing.primary_image_url}
+                            alt={listing.title}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <h3 className="font-semibold mb-2 line-clamp-1">{listing.title}</h3>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span>{Number(listing.rating || 0).toFixed(1)}</span>
+                        <span>•</span>
+                        <span>{listing.view_count || 0} views</span>
+                      </div>
+                      <Badge variant={listing.is_active ? 'default' : 'outline'}>
+                        {listing.listing_status}
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
           </TabsContent>
@@ -363,7 +383,7 @@ export default function VendorDashboardPage() {
                   <CardDescription>Common tasks</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <Link href="/vendor/tours/new">
+                  <Link href="/vendor/listings/new?type=tour">
                     <Button variant="outline" className="w-full justify-start">
                       <Plus className="h-4 w-4 mr-2" />
                       Create New Tour

@@ -3,10 +3,13 @@ import AIAssistant from '@/components/AIAssistant'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Search, MapPin, Calendar, Users, Star, ArrowRight } from 'lucide-react'
+import { Search, MapPin, Star, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { getListings } from '@/lib/listings/queries'
 
-export default function Home() {
+export default async function Home() {
+  const featured = await getListings({ featuredOnly: true, limit: 3 })
+
   return (
     <div className="min-h-screen bg-white">
       <Navigation />
@@ -27,11 +30,12 @@ export default function Home() {
           {/* Search Box */}
           <Card className="max-w-3xl mx-auto">
             <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row gap-4">
+              <form action="/listings" className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                     <Input
+                      name="q"
                       placeholder="Where do you want to go?"
                       className="pl-10 h-12"
                     />
@@ -39,27 +43,18 @@ export default function Home() {
                 </div>
                 <div className="flex-1">
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                     <Input
-                      type="date"
+                      name="country"
+                      placeholder="Country"
                       className="pl-10 h-12"
                     />
                   </div>
                 </div>
-                <div className="flex-1">
-                  <div className="relative">
-                    <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <Input
-                      type="number"
-                      placeholder="Guests"
-                      className="pl-10 h-12"
-                    />
-                  </div>
-                </div>
-                <Button size="lg" className="h-12 px-8">
+                <Button type="submit" size="lg" className="h-12 px-8">
                   Search
                 </Button>
-              </div>
+              </form>
             </CardContent>
           </Card>
         </div>
@@ -121,76 +116,53 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Destinations */}
-      <section className="py-16 px-4 bg-gray-50">
-        <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Featured Destinations</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="overflow-hidden group cursor-pointer">
-              <div className="h-64 bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
-                <span className="text-8xl">🌴</span>
-              </div>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2 text-gray-600 mb-2">
-                  <MapPin className="h-4 w-4" />
-                  <span className="text-sm">Kenya</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Safari Adventures</h3>
-                <div className="flex items-center gap-2 mb-4">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm">4.9 (2,453 reviews)</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">From $299</span>
-                  <ArrowRight className="h-5 w-5 text-blue-600 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden group cursor-pointer">
-              <div className="h-64 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                <span className="text-8xl">🏝️</span>
-              </div>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2 text-gray-600 mb-2">
-                  <MapPin className="h-4 w-4" />
-                  <span className="text-sm">Tanzania</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Zanzibar Beach</h3>
-                <div className="flex items-center gap-2 mb-4">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm">4.8 (1,892 reviews)</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">From $199</span>
-                  <ArrowRight className="h-5 w-5 text-blue-600 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="overflow-hidden group cursor-pointer">
-              <div className="h-64 bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center">
-                <span className="text-8xl">🦁</span>
-              </div>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-2 text-gray-600 mb-2">
-                  <MapPin className="h-4 w-4" />
-                  <span className="text-sm">South Africa</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Kruger National Park</h3>
-                <div className="flex items-center gap-2 mb-4">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm">4.9 (3,124 reviews)</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">From $349</span>
-                  <ArrowRight className="h-5 w-5 text-blue-600 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </CardContent>
-            </Card>
+      {/* Featured Listings */}
+      {featured.length > 0 && (
+        <section className="py-16 px-4 bg-gray-50">
+          <div className="container mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-12">Featured Listings</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {featured.map((listing) => (
+                <Link key={`${listing.type}-${listing.id}`} href={`/listings/${listing.type}/${listing.slug}`}>
+                  <Card className="overflow-hidden group cursor-pointer h-full py-0">
+                    <div className="h-64 bg-gradient-to-br from-teal-400 to-teal-600 relative">
+                      {listing.primary_image_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={listing.primary_image_url}
+                          alt={listing.title}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <CardContent className="p-6">
+                      {listing.location && (
+                        <div className="flex items-center gap-2 text-gray-600 mb-2">
+                          <MapPin className="h-4 w-4" />
+                          <span className="text-sm">{listing.location}</span>
+                        </div>
+                      )}
+                      <h3 className="text-xl font-semibold mb-2 line-clamp-1">{listing.title}</h3>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm">
+                          {listing.rating.toFixed(1)} ({listing.total_reviews} reviews)
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-bold">
+                          From {listing.currency} {listing.price.toLocaleString()}
+                        </span>
+                        <ArrowRight className="h-5 w-5 text-blue-600 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="py-16 px-4">
@@ -252,7 +224,7 @@ export default function Home() {
               <h4 className="font-semibold mb-4">For Business</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><Link href="/vendor/register" className="hover:text-white">Partner with Us</Link></li>
-                <li><Link href="/vendor/login" className="hover:text-white">Vendor Login</Link></li>
+                <li><Link href="/auth/login" className="hover:text-white">Vendor Login</Link></li>
               </ul>
             </div>
           </div>

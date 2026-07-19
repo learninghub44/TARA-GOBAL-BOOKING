@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Star, MapPin, Clock, Users, CheckCircle2 } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { getListingBySlug, listingPrice } from '@/lib/listings/queries'
-import type { ListingType, Tour, CarRental, AdventureActivity, TravelService } from '@/types/listings'
+import type { ListingType, Tour, CarRental, AdventureActivity, TravelService, AnyListing } from '@/types/listings'
 import BookingForm from './booking-form'
 
 const VALID_TYPES: ListingType[] = ['tour', 'travel_service', 'car_rental', 'adventure']
@@ -97,9 +97,10 @@ export default async function ListingDetailPage({
   )
 }
 
-function LocationLine({ type, listing }: { type: ListingType; listing: any }) {
-  const city = type === 'car_rental' || type === 'adventure' ? listing.location_city : listing.destination_city
-  const country = type === 'car_rental' || type === 'adventure' ? listing.location_country : listing.destination_country
+function LocationLine({ type, listing }: { type: ListingType; listing: AnyListing }) {
+  const l = listing as CarRental & AdventureActivity & Tour & TravelService
+  const city = type === 'car_rental' || type === 'adventure' ? l.location_city : l.destination_city
+  const country = type === 'car_rental' || type === 'adventure' ? l.location_country : l.destination_country
   const text = [city, country].filter(Boolean).join(', ')
   if (!text) return null
   return (
@@ -109,7 +110,7 @@ function LocationLine({ type, listing }: { type: ListingType; listing: any }) {
   )
 }
 
-function ListingDetails({ type, listing }: { type: ListingType; listing: any }) {
+function ListingDetails({ type, listing }: { type: ListingType; listing: AnyListing }) {
   if (type === 'tour') {
     const tour = listing as Tour
     return (
