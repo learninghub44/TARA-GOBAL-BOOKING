@@ -1,0 +1,44 @@
+Copyright (c) 2026 Chris Odhiambo / Zetu Business Solutions. All Rights Reserved.
+
+TARA — Tours • Travels • Rentals • Adventures ("the Software") and all associated source
+code, documentation, designs, database schemas, and assets in this repository are the
+proprietary property of Chris Odhiambo, trading as Zetu Business Solutions ("the Owner").
+
+NO LICENSE IS GRANTED
+
+This is not open-source software. No license, express or implied, is granted to any person
+to use, copy, modify, merge, publish, distribute, sublicense, deploy, or sell copies of the
+Software, in whole or in part, except as separately agreed in writing with the Owner.
+
+RESTRICTIONS
+
+Unless you have a signed agreement with the Owner stating otherwise, you may NOT:
+  1. Use the Software, in source or compiled form, for any commercial or non-commercial
+     purpose.
+  2. Copy, fork, mirror, or redistribute the Software or any portion of it.
+  3. Modify, reverse-engineer, decompile, or create derivative works based on the Software.
+  4. Remove or alter this notice, or any copyright/attribution notices, from any copy.
+  5. Use the "TARA" name, branding, or associated marks to represent an independent or
+     competing product or service.
+
+PERMITTED ACCESS
+
+Access to this repository (e.g., by collaborators, contractors, or reviewers) does not by
+itself grant any of the rights above. Permitted use is limited strictly to what is needed to
+perform work explicitly authorized by the Owner.
+
+THIRD-PARTY COMPONENTS
+
+The Software depends on open-source packages listed in package.json, each governed by its
+own license. This proprietary notice applies only to code, assets, and content original to
+this repository, not to those third-party dependencies.
+
+NO WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE OWNER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+For licensing inquiries, partnership terms, or permitted-use agreements, contact:
+Chris Odhiambo <chrisodhiambo958@gmail.com>
