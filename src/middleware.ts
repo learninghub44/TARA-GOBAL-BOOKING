@@ -33,8 +33,41 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protected routes
-  const protectedPaths = ['/dashboard', '/vendor', '/admin']
+  const pathname = request.nextUrl.pathname
+
+  // The 4 admin portals each have their own login page, checked most-specific first.
+  const adminPortalLoginPaths: [string, string][] = [
+    ['/admin/kyc/login', '/admin/kyc/login'],
+    ['/admin/finance/login', '/admin/finance/login'],
+    ['/admin/support/login', '/admin/support/login'],
+    ['/admin/login', '/admin/login'],
+  ]
+  const isAdminPortalLoginPage = adminPortalLoginPaths.some(([path]) => pathname === path)
+
+  if (pathname.startsWith('/admin') && !isAdminPortalLoginPage) {
+    const portalLogin =
+      pathname.startsWith('/admin/kyc') ? '/admin/kyc/login' :
+      pathname.startsWith('/admin/finance') ? '/admin/finance/login' :
+      pathname.startsWith('/admin/support') ? '/admin/support/login' :
+      '/admin/login'
+
+    if (!user) {
+      const redirectUrl = new URL(portalLogin, request.url)
+      redirectUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    return supabaseResponse
+  }
+
+  if (isAdminPortalLoginPage && user) {
+    // Already signed in -- the login form itself validates portal access and
+    // redirects; here we just avoid trapping a logged-in admin on a login page.
+    return supabaseResponse
+  }
+
+  // Protected routes (non-admin)
+  const protectedPaths = ['/dashboard', '/vendor']
   const isProtectedPath = protectedPaths.some(path => 
     request.nextUrl.pathname.startsWith(path)
   )

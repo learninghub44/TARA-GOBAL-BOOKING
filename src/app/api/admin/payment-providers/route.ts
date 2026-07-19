@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requirePlatformAdmin } from '@/lib/rbac/utils'
+import { requirePlatformAdminRole } from '@/lib/rbac/utils'
 import { getProviderSettings, updateProviderSetting } from '@/lib/payments/provider-settings'
 import { logAdminAction } from '@/lib/audit/logger'
 
 export async function GET() {
   try {
-    await requirePlatformAdmin()
+    await requirePlatformAdminRole(['finance_admin'])
     const settings = await getProviderSettings()
     return NextResponse.json({ providers: settings })
   } catch (error) {
@@ -17,7 +17,7 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const admin = await requirePlatformAdmin()
+    const admin = await requirePlatformAdminRole(['finance_admin'])
     const body = await request.json()
     const { provider, is_enabled, is_default, priority, notes } = body
 

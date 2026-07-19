@@ -48,19 +48,20 @@ export default function AdminDashboardPage() {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
-        router.push('/auth/login')
+        router.push('/admin/login')
         return
       }
 
-      // Check if user is platform admin
+      // Check if user is a Super Admin -- this is the full-access dashboard,
+      // scoped admins (KYC/Finance/Support) have their own dashboards.
       const { data: userData } = await supabase
         .from('users')
-        .select('role, tenant_id')
+        .select('role, tenant_id, platform_admin_role')
         .eq('id', user.id)
         .single()
 
-      if (!userData || userData.role !== 'owner' || userData.tenant_id !== null) {
-        setError('Access denied. Platform admin access required.')
+      if (!userData || userData.role !== 'owner' || userData.tenant_id !== null || userData.platform_admin_role !== 'super_admin') {
+        setError('Access denied. Super Admin access required.')
         setLoading(false)
         return
       }

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { UserRole, hasPermission, hasAnyPermission, hasAllPermissions, canAccessRole } from '@/types/rbac'
+import { UserRole, hasPermission, hasAnyPermission, hasAllPermissions, canAccessRole, PlatformAdminRole, canAccessPlatformAdminRole } from '@/types/rbac'
 
 export interface UserContext {
   id: string
@@ -8,6 +8,7 @@ export interface UserContext {
   role: UserRole
   is_active: boolean
   email_verified: boolean
+  platform_admin_role: PlatformAdminRole | null
 }
 
 export async function getCurrentUser(): Promise<UserContext | null> {
@@ -36,6 +37,7 @@ export async function getCurrentUser(): Promise<UserContext | null> {
     role: userData.role as UserRole,
     is_active: userData.is_active,
     email_verified: userData.email_verified || user.email_confirmed_at !== null,
+    platform_admin_role: (userData.platform_admin_role as PlatformAdminRole | null) ?? null,
   }
 }
 
@@ -130,4 +132,29 @@ export async function requirePlatformAdmin(): Promise<UserContext> {
   }
   
   return user
+}
+
+/**
+ * Guard for the 4 separate admin portals (super/kyc/finance/support).
+ * super_admin is always allowed through; the other roles must match one of
+ * `allowedRoles`. This is an app-layer convenience -- RLS enforces the same
+ * scoping as the real trust boundary (see migration 007).
+ */
+export async function requirePlatformAdminRole(allowedRoles: PlatformAdminRole[]): Promise<UserContext> {
+  const user = await requirePlatformAdmin()
+
+  if (!canAccessPlatformAdminRole(user.platform_admin_role, allowedRoles)) {
+    throw new Error('Insufficient admin portal access')
+  }
+
+  return user
+}
+
+export async function isPlatformAdminRole(allowedRoles: PlatformAdminRole[]): Promise<boolean> {
+  try {
+    const user = await requirePlatformAdmin()
+    return canAccessPlatformAdminRole(user.platform_admin_role, allowedRoles)
+  } catch {
+    return false
+  }
 }

@@ -217,3 +217,50 @@ export function hasAllPermissions(role: UserRole, permissions: Permission[]): bo
 export function canAccessRole(userRole: UserRole, targetRole: UserRole): boolean {
   return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[targetRole]
 }
+
+// ============================================
+// PLATFORM ADMIN PORTALS
+// ============================================
+// A platform admin row (role = 'owner', tenant_id = NULL) is further scoped by
+// platform_admin_role into one of 4 separate login portals. super_admin has the
+// union of everything the other 3 can do.
+
+export type PlatformAdminRole = 'super_admin' | 'kyc_admin' | 'finance_admin' | 'support_admin'
+
+export const PLATFORM_ADMIN_ROLES: PlatformAdminRole[] = [
+  'super_admin',
+  'kyc_admin',
+  'finance_admin',
+  'support_admin',
+]
+
+export const PLATFORM_ADMIN_LABELS: Record<PlatformAdminRole, string> = {
+  super_admin: 'Super Admin',
+  kyc_admin: 'KYC Admin',
+  finance_admin: 'Finance Admin',
+  support_admin: 'Support Admin',
+}
+
+export const PLATFORM_ADMIN_LOGIN_PATH: Record<PlatformAdminRole, string> = {
+  super_admin: '/admin/login',
+  kyc_admin: '/admin/kyc/login',
+  finance_admin: '/admin/finance/login',
+  support_admin: '/admin/support/login',
+}
+
+export const PLATFORM_ADMIN_DASHBOARD_PATH: Record<PlatformAdminRole, string> = {
+  super_admin: '/admin/dashboard',
+  kyc_admin: '/admin/kyc/dashboard',
+  finance_admin: '/admin/payments',
+  support_admin: '/admin/support/dashboard',
+}
+
+/** Does an admin whose portal role is `actual` get to use a page scoped to `required`? */
+export function canAccessPlatformAdminRole(
+  actual: PlatformAdminRole | null | undefined,
+  required: PlatformAdminRole[]
+): boolean {
+  if (!actual) return false
+  if (actual === 'super_admin') return true
+  return required.includes(actual)
+}
