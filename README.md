@@ -374,7 +374,9 @@ Before going live:
    default, and confirm each shows "Environment credentials found."
 5. Configure the two repo secrets and confirm the scheduled jobs are running.
 
----
+---- [License](#license)
+- [Sponsors](#sponsors)
+- [Contact](#contact)
 
 ## Security notes
 
