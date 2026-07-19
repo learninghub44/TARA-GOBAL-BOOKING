@@ -213,7 +213,7 @@ export default function KYCVerificationPage() {
                 <Label htmlFor="documentType">Document Type *</Label>
                 <Select
                   value={kycData.documentType}
-                  onValueChange={(value) => setKycData({ ...kycData, documentType: value })}
+                  onValueChange={(value) => setKycData({ ...kycData, documentType: value ?? '' })}
                   disabled={loading}
                 >
                   <SelectTrigger>
@@ -292,7 +292,7 @@ export default function KYCVerificationPage() {
                 <Label htmlFor="country">Issuing Country *</Label>
                 <Select
                   value={kycData.country}
-                  onValueChange={(value) => setKycData({ ...kycData, country: value })}
+                  onValueChange={(value) => setKycData({ ...kycData, country: value ?? '' })}
                   disabled={loading}
                 >
                   <SelectTrigger>

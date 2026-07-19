@@ -300,7 +300,7 @@ export default function VendorRegisterPage() {
                     <Label htmlFor="businessCountry">Country *</Label>
                     <Select
                       value={businessInfo.businessCountry || 'Kenya'}
-                      onValueChange={(value) => setBusinessInfo({ ...businessInfo, businessCountry: value })}
+                      onValueChange={(value) => setBusinessInfo({ ...businessInfo, businessCountry: value ?? '' })}
                       disabled={loading}
                     >
                       <SelectTrigger>

@@ -137,7 +137,7 @@ export default function NewSupportTicketPage() {
                 <Label htmlFor="category">Category *</Label>
                 <Select
                   value={ticketData.category || 'technical'}
-                  onValueChange={(value) => setTicketData({ ...ticketData, category: value })}
+                  onValueChange={(value) => setTicketData({ ...ticketData, category: value ?? '' })}
                   disabled={loading}
                 >
                   <SelectTrigger>
@@ -159,7 +159,7 @@ export default function NewSupportTicketPage() {
                 <Label htmlFor="priority">Priority</Label>
                 <Select
                   value={ticketData.priority || 'medium'}
-                  onValueChange={(value) => setTicketData({ ...ticketData, priority: value })}
+                  onValueChange={(value) => setTicketData({ ...ticketData, priority: value ?? '' })}
                   disabled={loading}
                 >
                   <SelectTrigger>
