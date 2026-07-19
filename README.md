@@ -15,7 +15,7 @@ KYC pipeline sized for local business verification.
 
 ---
 YOU CAN BUY ME A COFEE USING THE LINK BELOW AND APPRECIATE YOU 
-https://paystack.shop/pay/dzio0eaefa
+https://paystack.shop/pay/christech
 ## Table of contents
 
 - [What TARA does](#what-tara-does)
