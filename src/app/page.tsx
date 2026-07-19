@@ -17,7 +17,7 @@ export default async function Home() {
       
       {/* Hero Section */}
       <section className="relative h-[600px] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-navy via-brand-navy to-brand-gold" />
         <div className="absolute inset-0 bg-black/30" />
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
@@ -167,7 +167,7 @@ export default async function Home() {
       {/* CTA Section */}
       <section className="py-16 px-4">
         <div className="container mx-auto">
-          <Card className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white">
+          <Card className="bg-gradient-to-br from-brand-navy to-brand-gold text-white">
             <CardContent className="p-12 text-center">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
                 Ready to Start Your Journey?

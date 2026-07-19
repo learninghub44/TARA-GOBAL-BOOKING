@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -52,13 +53,15 @@ export default function Navigation() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600">
-              <span className="text-xl font-bold text-white">T</span>
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              TARA
-            </span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo-horizontal.png"
+              alt="TARA — Tours, Accommodation, Rentals & Adventures"
+              width={831}
+              height={200}
+              priority
+              className="h-9 w-auto md:h-10"
+            />
           </Link>
 
           {/* Desktop Navigation */}
