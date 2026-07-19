@@ -6,8 +6,14 @@ import { verifyPayment, processPaymentWebhook } from '@/lib/payments/service'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
-    const orderTrackingId =
-      body.OrderTrackingId || body.order_tracking_id || request.nextUrl.searchParams.get('OrderTrackingId')
+    const orderTrackingId: string | null =
+      body.OrderTrackingId ||
+      body.order_tracking_id ||
+      request.nextUrl.searchParams.get('OrderTrackingId')
+    const merchantReference: string =
+      body.OrderMerchantReference || request.nextUrl.searchParams.get('OrderMerchantReference') || ''
+    const notificationType: string =
+      body.OrderNotificationType || request.nextUrl.searchParams.get('OrderNotificationType') || 'IPNCHANGE'
 
     if (!orderTrackingId) {
       return NextResponse.json({ error: 'Missing order tracking id' }, { status: 400 })
@@ -24,7 +30,13 @@ export async function POST(request: NextRequest) {
       console.error('Pesapal webhook processing failed:', result.error)
     }
 
-    return NextResponse.json({ received: true })
+    // Pesapal expects this exact acknowledgement shape, or it will keep retrying the IPN.
+    return NextResponse.json({
+      orderNotificationType: notificationType,
+      orderTrackingId,
+      orderMerchantReference: merchantReference,
+      status: 200,
+    })
   } catch (error) {
     console.error('Pesapal webhook error:', error)
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 400 })
