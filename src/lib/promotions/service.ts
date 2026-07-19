@@ -11,6 +11,7 @@ export interface PurchasePromotionRequest {
   listing_id?: string
   listing_type?: ListingType
   destination_page_id?: string
+  advertisement_id?: string
   provider?: PaymentProvider
   phone_number?: string
   callback_origin: string
@@ -36,6 +37,14 @@ const LISTING_SCOPED_TYPES = new Set([
 ])
 
 const DESTINATION_SCOPED_TYPES = new Set(['destination_featured'])
+
+// Promotion types that run against a vendor-created advertisements row
+// (draft created via /api/vendor/advertisements) rather than a listing.
+export const AD_SCOPED_TYPES = new Set([
+  'banner_advertisement',
+  'newsletter_promotion',
+  'search_promotion',
+])
 
 /**
  * Vendor purchases a promotional product. Mirrors the subscription checkout
@@ -63,6 +72,9 @@ export async function purchasePromotion(
   if (DESTINATION_SCOPED_TYPES.has(pkg.promotion_type) && !req.destination_page_id) {
     return { success: false, error: 'destination_page_id is required for this promotion type' }
   }
+  if (AD_SCOPED_TYPES.has(pkg.promotion_type) && !req.advertisement_id) {
+    return { success: false, error: 'advertisement_id is required for this promotion type' }
+  }
 
   const supabase = createAdminClient()
 
@@ -80,6 +92,24 @@ export async function purchasePromotion(
     }
   }
 
+  // Ownership + state check: the advertisement must belong to this tenant
+  // and still be a draft (an ad can only be paid for once, and only before
+  // it's already running or awaiting review under another campaign).
+  if (req.advertisement_id) {
+    const { data: ad } = await supabase
+      .from('advertisements')
+      .select('id, tenant_id, status')
+      .eq('id', req.advertisement_id)
+      .maybeSingle()
+
+    if (!ad || ad.tenant_id !== tenant.id) {
+      return { success: false, error: 'Advertisement not found for this vendor' }
+    }
+    if (ad.status !== 'draft') {
+      return { success: false, error: 'Only draft advertisements can be submitted for payment' }
+    }
+  }
+
   const { data: promotion, error: promoError } = await supabase
     .from('vendor_promotions')
     .insert({
@@ -90,6 +120,7 @@ export async function purchasePromotion(
       listing_id: req.listing_id || null,
       listing_type: req.listing_type || null,
       destination_page_id: req.destination_page_id || null,
+      advertisement_id: req.advertisement_id || null,
       status: 'pending',
       cost: pkg.price,
       currency: pkg.currency,
@@ -101,6 +132,15 @@ export async function purchasePromotion(
   if (promoError || !promotion) {
     console.error('Error creating vendor promotion:', promoError)
     return { success: false, error: 'Failed to create promotion record' }
+  }
+
+  if (req.advertisement_id) {
+    // Link back from the ad so it can be found/managed via its own campaign
+    // record, and mark it as awaiting payment so it can't be resubmitted.
+    await supabase
+      .from('advertisements')
+      .update({ vendor_promotion_id: promotion.id, status: 'pending_review' })
+      .eq('id', req.advertisement_id)
   }
 
   const payment = await initializePaymentWithFallback(
@@ -197,6 +237,26 @@ export async function activatePromotion(promotionId: string): Promise<void> {
     await supabase.from(table).update({ is_featured: true }).eq('id', promotion.listing_id)
   }
 
+  if (promotion.advertisement_id) {
+    await supabase
+      .from('advertisements')
+      .update({
+        status: 'active',
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        approved_at: startDate.toISOString(),
+      })
+      .eq('id', promotion.advertisement_id)
+
+    await supabase.from('promotion_events').insert({
+      tenant_id: promotion.tenant_id,
+      vendor_promotion_id: promotion.id,
+      advertisement_id: promotion.advertisement_id,
+      event_type: 'advertisement_approved',
+      message: 'Your advertisement campaign is now live.',
+    })
+  }
+
   if (promotion.promotion_type === 'premium_badge') {
     await supabase.from('vendor_badges').insert({
       tenant_id: promotion.tenant_id,
@@ -238,8 +298,23 @@ export async function activatePromotion(promotionId: string): Promise<void> {
  */
 export async function markPromotionPaymentFailed(promotionId: string): Promise<void> {
   const supabase = createAdminClient()
+  const { data: promotion } = await supabase
+    .from('vendor_promotions')
+    .select('id, advertisement_id')
+    .eq('id', promotionId)
+    .maybeSingle()
+
   await supabase.from('vendor_promotions').update({ status: 'rejected', rejected_reason: 'Payment failed' }).eq('id', promotionId)
   await supabase.from('promotion_payments').update({ status: 'failed' }).eq('vendor_promotion_id', promotionId)
+
+  if (promotion?.advertisement_id) {
+    // Send the ad back to draft (not 'rejected') so the vendor can simply
+    // retry payment on the same campaign instead of recreating it.
+    await supabase
+      .from('advertisements')
+      .update({ status: 'draft', vendor_promotion_id: null })
+      .eq('id', promotion.advertisement_id)
+  }
 }
 
 /**

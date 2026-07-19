@@ -11,7 +11,7 @@ const VALID_LISTING_TYPES: ListingType[] = ['tour', 'travel_service', 'car_renta
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { package_slug, listing_id, listing_type, destination_page_id, provider, phone_number } = body
+    const { package_slug, listing_id, listing_type, destination_page_id, advertisement_id, provider, phone_number } = body
 
     if (!package_slug) {
       return NextResponse.json({ error: 'package_slug is required' }, { status: 400 })
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       listing_id,
       listing_type,
       destination_page_id,
+      advertisement_id,
       provider,
       phone_number,
       callback_origin: appUrl,
