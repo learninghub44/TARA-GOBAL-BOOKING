@@ -1,13 +1,13 @@
 # TARA — Tours • Travels • Rentals • Adventures
 
-TARA is a multi-tenant marketplace platform where verified travel businesses across East Africa
-list and sell tours, travel services, car rentals, and adventure activities. Vendors pay TARA a
-recurring platform subscription; customers pay vendors directly, off-platform, using whatever
-method the vendor prefers.
+**A multi-tenant travel marketplace built for East Africa** — vendors list tours, travel
+services, car rentals, and adventure activities; TARA handles verification, discovery, and
+platform billing, while customers and vendors settle bookings directly between themselves.
 
-Built for the Kenyan/East African market from the ground up: M-Pesa, Paystack, and Pesapal as
-first-class payment rails; KES-first pricing; and a KYC pipeline sized for local business
-verification.
+Vendors pay TARA a recurring platform subscription; customers pay vendors directly, off-platform,
+using whatever method the vendor prefers. Built for the Kenyan/East African market from the
+ground up: M-Pesa, Paystack, and Pesapal as first-class payment rails; KES-first pricing; and a
+KYC pipeline sized for local business verification.
 
 > **Note on multi-tenancy**: "Tenant" here means a vendor business (a tour operator, a car rental
 > company, an adventure outfitter), not an individual customer. Customers browse and book without
