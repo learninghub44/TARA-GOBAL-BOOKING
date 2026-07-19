@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    const result = await processPaymentWebhook('paystack', payload)
+    const result = await processPaymentWebhook('paystack', payload, payload.event)
 
     if (!result.success) {
       console.error('Paystack webhook processing failed:', result.error)

@@ -1,14 +1,23 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { initializePaystackPayment, verifyPaystackPayment, generatePaystackReference } from './providers/paystack'
+import {
+  initializePaystackPayment,
+  verifyPaystackPayment,
+  generatePaystackReference,
+  refundPaystackPayment,
+} from './providers/paystack'
 import { initializePesapalPayment, verifyPesapalPayment, generatePesapalReference } from './providers/pesapal'
 import { initiateMpesaSTKPush, processMpesaCallback, generateMpesaReference } from './providers/mpesa'
+import { getUsableProviders, getDefaultProvider, type PaymentProvider } from './provider-settings'
 
-export type PaymentProvider = 'paystack' | 'pesapal' | 'mpesa'
+export type { PaymentProvider }
 
-// Fallback order when the caller doesn't request a specific provider.
-// Paystack first (cards + M-Pesa via Paystack channels, most reliable uptime),
-// then Pesapal, then direct Daraja M-Pesa STK push last (needs a phone number).
-const DEFAULT_PROVIDER_ORDER: PaymentProvider[] = ['paystack', 'pesapal', 'mpesa']
+// Used only if the payment_provider_settings table has no rows yet (e.g.
+// migration not applied) — keeps the service working before the admin
+// panel has been configured.
+const FALLBACK_PROVIDER_ORDER: PaymentProvider[] = ['paystack', 'pesapal', 'mpesa']
+
+const MAX_RETRIES = 2 // per-provider retry attempts for transient errors
+const RETRY_BASE_DELAY_MS = 400
 
 export interface PaymentRequest {
   amount: number
@@ -36,22 +45,66 @@ export interface PaymentAttempt {
   provider: PaymentProvider
   success: boolean
   error?: string
+  retries?: number
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**
- * Returns providers that are actually configured with credentials, i.e. "active".
+ * A network error, timeout, or 5xx is likely transient and worth retrying.
+ * A rejected transaction (insufficient funds, invalid card, etc.) is not.
+ */
+function isRetryableError(message: string): boolean {
+  const m = message.toLowerCase()
+  return (
+    m.includes('fetch failed') ||
+    m.includes('network') ||
+    m.includes('timeout') ||
+    m.includes('econnreset') ||
+    m.includes('enotfound') ||
+    m.includes('502') ||
+    m.includes('503') ||
+    m.includes('504')
+  )
+}
+
+async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
+  let lastError: unknown
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error
+      const message = error instanceof Error ? error.message : String(error)
+      if (attempt === MAX_RETRIES || !isRetryableError(message)) {
+        throw error
+      }
+      const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt)
+      console.warn(`${label}: transient error, retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`, message)
+      await sleep(delay)
+    }
+  }
+  throw lastError
+}
+
+/**
+ * Providers that are enabled in the admin panel AND have credentials
+ * configured via environment variables. Falls back to a hardcoded order
+ * (still credential-gated) if the settings table isn't populated yet.
  */
 export async function getAvailableProviders(): Promise<PaymentProvider[]> {
+  try {
+    const usable = await getUsableProviders()
+    if (usable.length > 0) return usable
+  } catch (error) {
+    console.warn('Falling back to env-only provider detection:', error)
+  }
+
   const providers: PaymentProvider[] = []
-
-  if (process.env.PAYSTACK_SECRET_KEY) {
-    providers.push('paystack')
-  }
-
-  if (process.env.PESAPAL_CONSUMER_KEY && process.env.PESAPAL_CONSUMER_SECRET) {
-    providers.push('pesapal')
-  }
-
+  if (process.env.PAYSTACK_SECRET_KEY) providers.push('paystack')
+  if (process.env.PESAPAL_CONSUMER_KEY && process.env.PESAPAL_CONSUMER_SECRET) providers.push('pesapal')
   if (
     process.env.MPESA_CONSUMER_KEY &&
     process.env.MPESA_CONSUMER_SECRET &&
@@ -60,7 +113,6 @@ export async function getAvailableProviders(): Promise<PaymentProvider[]> {
   ) {
     providers.push('mpesa')
   }
-
   return providers
 }
 
@@ -68,10 +120,12 @@ export async function getAvailableProviders(): Promise<PaymentProvider[]> {
  * Initializes a payment with a single, specific provider. Always writes a
  * payments row so every attempt (successful or not) is auditable — on
  * failure the row is marked 'failed' rather than left dangling as 'pending'.
+ * Transient provider errors (network blips, 5xx) are retried with backoff
+ * before the attempt is recorded as failed.
  */
 export async function initializePayment(request: PaymentRequest): Promise<PaymentResponse> {
   const supabase = createAdminClient()
-  const provider = request.provider || 'paystack'
+  const provider = request.provider || (await getDefaultProvider()) || 'paystack'
   const reference = generateReference(provider)
 
   const { data: payment, error: paymentError } = await supabase
@@ -101,6 +155,8 @@ export async function initializePayment(request: PaymentRequest): Promise<Paymen
     }
   }
 
+  const retries = 0
+
   try {
     let paymentUrl: string | undefined
 
@@ -109,17 +165,21 @@ export async function initializePayment(request: PaymentRequest): Promise<Paymen
         if (!request.email) {
           throw new Error('Email required for Paystack payments')
         }
-        const paystackResponse = await initializePaystackPayment({
-          email: request.email,
-          amount: request.amount * 100, // Paystack uses smallest currency unit
-          currency: request.currency,
-          reference,
-          metadata: {
-            payment_id: payment.id,
-            tenant_id: request.tenant_id,
-          },
-          callback_url: request.callback_url,
-        })
+        const paystackResponse = await withRetry(
+          () =>
+            initializePaystackPayment({
+              email: request.email!,
+              amount: request.amount * 100, // Paystack uses smallest currency unit
+              currency: request.currency,
+              reference,
+              metadata: {
+                payment_id: payment.id,
+                tenant_id: request.tenant_id,
+              },
+              callback_url: request.callback_url,
+            }),
+          'Paystack init'
+        )
 
         if (!paystackResponse.status) {
           throw new Error(paystackResponse.message || 'Paystack initialization failed')
@@ -130,15 +190,19 @@ export async function initializePayment(request: PaymentRequest): Promise<Paymen
       }
 
       case 'pesapal': {
-        const pesapalResponse = await initializePesapalPayment({
-          amount: request.amount,
-          currency: request.currency,
-          description: request.description,
-          callback_url: request.callback_url || '',
-          reference,
-          email: request.email,
-          phone_number: request.phone_number,
-        })
+        const pesapalResponse = await withRetry(
+          () =>
+            initializePesapalPayment({
+              amount: request.amount,
+              currency: request.currency,
+              description: request.description,
+              callback_url: request.callback_url || '',
+              reference,
+              email: request.email,
+              phone_number: request.phone_number,
+            }),
+          'Pesapal init'
+        )
 
         if (pesapalResponse.status !== 'success') {
           throw new Error(pesapalResponse.message || 'Pesapal initialization failed')
@@ -153,13 +217,17 @@ export async function initializePayment(request: PaymentRequest): Promise<Paymen
           throw new Error('Phone number required for M-Pesa payments')
         }
 
-        const mpesaResponse = await initiateMpesaSTKPush({
-          phone_number: request.phone_number,
-          amount: request.amount,
-          account_reference: reference,
-          transaction_desc: request.description,
-          callback_url: request.callback_url || '',
-        })
+        const mpesaResponse = await withRetry(
+          () =>
+            initiateMpesaSTKPush({
+              phone_number: request.phone_number!,
+              amount: request.amount,
+              account_reference: reference,
+              transaction_desc: request.description,
+              callback_url: request.callback_url || '',
+            }),
+          'M-Pesa STK push'
+        )
 
         if (mpesaResponse.ResponseCode !== '0') {
           throw new Error(mpesaResponse.ResponseDescription || 'M-Pesa STK push failed')
@@ -197,6 +265,8 @@ export async function initializePayment(request: PaymentRequest): Promise<Paymen
         status: 'failed',
         verification_status: 'rejected',
         provider_response: { error: message },
+        retry_count: retries,
+        last_retry_at: retries > 0 ? new Date().toISOString() : null,
       })
       .eq('id', payment.id)
 
@@ -222,9 +292,15 @@ export async function initializePaymentWithFallback(
 ): Promise<PaymentResponse & { attempts: PaymentAttempt[] }> {
   const active = await getAvailableProviders()
 
-  let order = (providerOrder && providerOrder.length ? providerOrder : DEFAULT_PROVIDER_ORDER).filter((p) =>
+  let order = (providerOrder && providerOrder.length ? providerOrder : FALLBACK_PROVIDER_ORDER).filter((p) =>
     active.includes(p)
   )
+
+  // Preserve admin-configured priority order when the caller didn't force one.
+  if (!providerOrder || providerOrder.length === 0) {
+    order = active.filter((p) => order.includes(p))
+    if (order.length === 0) order = active
+  }
 
   // M-Pesa STK push can't run without a phone number - only keep it in the
   // automatic chain when we actually have one to push to.
@@ -272,7 +348,7 @@ export async function verifyPayment(
   try {
     switch (provider) {
       case 'paystack': {
-        const verificationData = await verifyPaystackPayment(reference)
+        const verificationData = await withRetry(() => verifyPaystackPayment(reference), 'Paystack verify')
         if (!verificationData.status || verificationData.data.status !== 'success') {
           return { success: false, error: 'Payment not successful' }
         }
@@ -283,7 +359,7 @@ export async function verifyPayment(
       }
 
       case 'pesapal': {
-        const verificationData = await verifyPesapalPayment(reference)
+        const verificationData = await withRetry(() => verifyPesapalPayment(reference), 'Pesapal verify')
         if (verificationData.data.payment_status !== 'COMPLETED') {
           return { success: false, error: 'Payment not completed' }
         }
@@ -310,13 +386,16 @@ export async function verifyPayment(
 }
 
 /**
- * Processes a provider webhook/callback: marks the payment row, and if it
- * belongs to a subscription, activates that subscription AND mirrors the
- * status onto the tenant row (subscription checks read from tenants).
+ * Processes a provider webhook/callback: logs the raw payload for audit,
+ * marks the payment row, and if it belongs to a subscription, activates
+ * that subscription AND mirrors the status onto the tenant row (subscription
+ * checks read from tenants).
  */
 export async function processPaymentWebhook(
   provider: PaymentProvider,
-  payload: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- shape differs per provider (paystack/pesapal/mpesa)
+  payload: any,
+  eventType?: string
 ): Promise<{ success: boolean; reference?: string; error?: string }> {
   const supabase = createAdminClient()
 
@@ -365,6 +444,18 @@ export async function processPaymentWebhook(
       payment = fallback.data
     }
 
+    // Always log the raw webhook, even if we can't match it to a payment yet —
+    // this is the audit trail required for reconciliation and disputes.
+    await supabase.from('payment_webhooks').insert({
+      payment_id: payment?.id ?? null,
+      provider,
+      event_type: eventType || (success ? 'payment.success' : 'payment.failed'),
+      payload,
+      processed: !!payment,
+      processed_at: payment ? new Date().toISOString() : null,
+      error_message: payment ? null : 'Payment record not found for this reference',
+    })
+
     if (!payment) {
       return { success: false, error: 'Payment record not found' }
     }
@@ -389,7 +480,7 @@ export async function processPaymentWebhook(
     if (success && payment.subscription_id) {
       const { data: subscription, error: subError } = await supabase
         .from('subscriptions')
-        .update({ status: 'active' })
+        .update({ status: 'active', reminder_sent_at: null })
         .eq('id', payment.subscription_id)
         .select()
         .single()
@@ -431,6 +522,119 @@ export async function processPaymentWebhook(
       error: error instanceof Error ? error.message : 'Unknown error',
     }
   }
+}
+
+export interface RefundResult {
+  success: boolean
+  status: 'completed' | 'processing' | 'failed' | 'manual_required'
+  provider_refund_id?: string
+  error?: string
+}
+
+/**
+ * Admin-initiated refund. Verifies server-side that the payment is actually
+ * completed before attempting anything with the provider. Paystack supports
+ * refunds via API; Pesapal and M-Pesa don't expose a reliable programmatic
+ * refund endpoint for this integration, so those are recorded as
+ * 'manual_required' — the admin executes the refund directly with the
+ * provider/bank and the record stays here for audit purposes.
+ */
+export async function refundPayment(
+  paymentId: string,
+  amount: number | undefined,
+  reason: string | undefined,
+  initiatedBy: string
+): Promise<RefundResult> {
+  const supabase = createAdminClient()
+
+  const { data: payment, error: paymentError } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('id', paymentId)
+    .maybeSingle()
+
+  if (paymentError || !payment) {
+    return { success: false, status: 'failed', error: 'Payment not found' }
+  }
+
+  if (payment.status !== 'completed') {
+    return { success: false, status: 'failed', error: 'Only completed payments can be refunded' }
+  }
+
+  const refundAmount = amount ?? Number(payment.amount) - Number(payment.refunded_amount || 0)
+  if (refundAmount <= 0 || refundAmount > Number(payment.amount) - Number(payment.refunded_amount || 0)) {
+    return { success: false, status: 'failed', error: 'Invalid refund amount' }
+  }
+
+  const { data: refundRow, error: refundInsertError } = await supabase
+    .from('payment_refunds')
+    .insert({
+      payment_id: payment.id,
+      tenant_id: payment.tenant_id,
+      amount: refundAmount,
+      currency: payment.currency,
+      reason,
+      status: 'processing',
+      initiated_by: initiatedBy,
+    })
+    .select()
+    .single()
+
+  if (refundInsertError || !refundRow) {
+    return { success: false, status: 'failed', error: 'Failed to create refund record' }
+  }
+
+  let result: RefundResult
+
+  try {
+    switch (payment.payment_provider as PaymentProvider) {
+      case 'paystack': {
+        const isFullRefund = refundAmount >= Number(payment.amount)
+        const response = await refundPaystackPayment(
+          payment.transaction_reference,
+          isFullRefund ? undefined : Math.round(refundAmount * 100)
+        )
+        result = {
+          success: true,
+          status: 'completed',
+          provider_refund_id: response.data?.id ? String(response.data.id) : undefined,
+        }
+        break
+      }
+
+      case 'pesapal':
+      case 'mpesa':
+      default:
+        // No safe programmatic refund path — flag for manual processing.
+        result = { success: true, status: 'manual_required' }
+        break
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    result = { success: false, status: 'failed', error: message }
+  }
+
+  await supabase
+    .from('payment_refunds')
+    .update({
+      status: result.status,
+      provider_refund_id: result.provider_refund_id,
+      provider_response: result.error ? { error: result.error } : null,
+    })
+    .eq('id', refundRow.id)
+
+  if (result.status === 'completed') {
+    const newRefundedTotal = Number(payment.refunded_amount || 0) + refundAmount
+    await supabase
+      .from('payments')
+      .update({
+        refunded_amount: newRefundedTotal,
+        status: newRefundedTotal >= Number(payment.amount) ? 'refunded' : payment.status,
+      })
+      .eq('id', payment.id)
+  }
+
+  return result
 }
 
 function generateReference(provider: PaymentProvider): string {
