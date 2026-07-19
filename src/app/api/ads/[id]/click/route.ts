@@ -19,7 +19,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       user_agent: request.headers.get('user-agent') || null,
       referrer: request.headers.get('referer') || null,
     })
-    await supabase.rpc('increment_advertisement_clicks', { p_ad_id: id })
+    const { data: result } = await supabase.rpc('record_advertisement_click', { p_ad_id: id })
+    const justPaused = Array.isArray(result) ? result[0]?.just_paused : result?.just_paused
+
+    if (justPaused) {
+      const { data: paused } = await supabase.from('advertisements').select('tenant_id').eq('id', id).maybeSingle()
+      if (paused) {
+        await supabase.from('promotion_events').insert({
+          tenant_id: paused.tenant_id,
+          advertisement_id: id,
+          event_type: 'advertisement_paused',
+          message: 'Your advertisement was automatically paused after reaching its budget or daily spend cap.',
+        })
+      }
+    }
 
     return NextResponse.json({ success: true, landing_url: ad.landing_url })
   } catch (error) {

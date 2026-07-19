@@ -75,6 +75,8 @@ export async function POST(request: NextRequest) {
       landing_url,
       budget,
       daily_cap,
+      cost_per_click,
+      cost_per_impression,
       target_categories,
       target_destinations,
       target_countries,
@@ -88,6 +90,11 @@ export async function POST(request: NextRequest) {
     }
     if (!landing_url) {
       return NextResponse.json({ error: 'landing_url is required' }, { status: 400 })
+    }
+    for (const [field, value] of Object.entries({ budget, daily_cap, cost_per_click, cost_per_impression })) {
+      if (value !== undefined && value !== null && (typeof value !== 'number' || value < 0)) {
+        return NextResponse.json({ error: `${field} must be a non-negative number` }, { status: 400 })
+      }
     }
 
     const user = await requirePermission('advertisements', 'create')
@@ -107,6 +114,8 @@ export async function POST(request: NextRequest) {
         landing_url,
         budget: budget || null,
         daily_cap: daily_cap || null,
+        cost_per_click: cost_per_click || null,
+        cost_per_impression: cost_per_impression || null,
         target_categories: target_categories || null,
         target_destinations: target_destinations || null,
         target_countries: target_countries || null,

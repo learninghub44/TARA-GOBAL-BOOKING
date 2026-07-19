@@ -6,19 +6,22 @@ import { createAdminClient } from '@/lib/supabase/admin'
 const ALLOWED_ACTIONS = ['pause', 'resume', 'cancel'] as const
 type Action = (typeof ALLOWED_ACTIONS)[number]
 
-const EDITABLE_DRAFT_FIELDS = [
+const DRAFT_ONLY_FIELDS = [
   'title',
   'description',
   'image_url',
   'video_url',
   'cta_text',
   'landing_url',
-  'budget',
-  'daily_cap',
   'target_categories',
   'target_destinations',
   'target_countries',
 ] as const
+
+// Spend controls stay editable at any campaign status — a vendor needs to
+// be able to raise a budget/daily_cap (or adjust their bid) on a running
+// campaign, especially one that auto-paused after hitting a cap.
+const SPEND_CONTROL_FIELDS = ['budget', 'daily_cap', 'cost_per_click', 'cost_per_impression'] as const
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -118,14 +121,26 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ success: true })
     }
 
-    // Content edit path — draft only.
-    if (advertisement.status !== 'draft') {
-      return NextResponse.json({ error: 'Only draft advertisements can be edited' }, { status: 400 })
-    }
-
+    // Edit path: spend controls (budget/daily_cap/rates) are editable at any
+    // status; creative/targeting fields only while still a draft.
     const updates: Record<string, unknown> = {}
-    for (const field of EDITABLE_DRAFT_FIELDS) {
+    for (const field of SPEND_CONTROL_FIELDS) {
       if (field in body) updates[field] = body[field]
+    }
+    for (const field of DRAFT_ONLY_FIELDS) {
+      if (field in body) {
+        if (advertisement.status !== 'draft') {
+          return NextResponse.json({ error: `${field} can only be edited while the advertisement is a draft` }, { status: 400 })
+        }
+        updates[field] = body[field]
+      }
+    }
+    for (const [field, value] of Object.entries(updates)) {
+      if (SPEND_CONTROL_FIELDS.includes(field as (typeof SPEND_CONTROL_FIELDS)[number])) {
+        if (value !== null && value !== undefined && (typeof value !== 'number' || value < 0)) {
+          return NextResponse.json({ error: `${field} must be a non-negative number` }, { status: 400 })
+        }
+      }
     }
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No editable fields provided' }, { status: 400 })
