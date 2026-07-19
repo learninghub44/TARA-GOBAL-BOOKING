@@ -28,3 +28,13 @@ jobs:
           curl -sf -X POST "${{ secrets.APP_URL }}/api/cron/subscriptions" \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             -o - -w "\nHTTP %{http_code}\n"
+
+  promotions-expiry:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 6 * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Expire overdue promotions and advertisements
+        run: |
+          curl -sf -X POST "${{ secrets.APP_URL }}/api/cron/promotions" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -o - -w "\nHTTP %{http_code}\n"
