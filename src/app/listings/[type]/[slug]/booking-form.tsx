@@ -166,10 +166,11 @@ export default function BookingForm({
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <Button type="submit" className="w-full h-11" disabled={loading}>
-            {loading ? 'Booking...' : `Book "${title.slice(0, 20)}${title.length > 20 ? '…' : ''}"`}
+            {loading ? 'Sending request...' : `Request "${title.slice(0, 20)}${title.length > 20 ? '…' : ''}"`}
           </Button>
           <p className="text-xs text-gray-500 text-center">
-            You&apos;ll confirm payment on the next step.
+            You&apos;ll get the vendor&apos;s contact details to arrange payment directly with
+            them. TARA doesn&apos;t process this payment.
           </p>
         </form>
       </CardContent>
