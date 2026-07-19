@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient()
     let query = supabase
       .from('vendor_promotions')
-      .select('*, tenants(business_name, business_slug), promotion_packages(name, slug)', { count: 'exact' })
+      .select('*, tenants(business_name, business_slug), promotion_packages(name, slug), advertisements(*)', { count: 'exact' })
       .order('created_at', { ascending: false })
 
     if (status) query = query.eq('status', status)
