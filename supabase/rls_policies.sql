@@ -752,3 +752,40 @@ CREATE POLICY "Platform admins can read all ai assistant logs" ON ai_assistant_l
 CREATE POLICY "Users can read own ai assistant logs" ON ai_assistant_logs
     FOR SELECT
     USING (user_id = auth.uid());
+
+-- ============================================
+-- WEBRTC SIGNALS RLS POLICIES
+-- ============================================
+
+-- Service role can do everything
+CREATE POLICY "Service role can manage webrtc signals" ON webrtc_signals
+    FOR ALL
+    USING (auth.role() = 'service_role');
+
+-- Sender can insert a signal only as themselves, and only into a
+-- conversation they're actually part of (customer or same-tenant staff)
+CREATE POLICY "Users can send webrtc signals in their conversations" ON webrtc_signals
+    FOR INSERT
+    WITH CHECK (
+        sender_id = auth.uid()
+        AND EXISTS (
+            SELECT 1 FROM conversations
+            WHERE conversations.id = webrtc_signals.conversation_id
+            AND (
+                conversations.tenant_id IN (
+                    SELECT users.tenant_id FROM users WHERE users.id = auth.uid()
+                )
+                OR conversations.customer_id = auth.uid()
+            )
+        )
+    );
+
+-- Only the intended receiver can read a signal addressed to them
+CREATE POLICY "Users can read webrtc signals addressed to them" ON webrtc_signals
+    FOR SELECT
+    USING (receiver_id = auth.uid());
+
+-- Either participant can delete signals once a call/conversation ends
+CREATE POLICY "Participants can delete webrtc signals" ON webrtc_signals
+    FOR DELETE
+    USING (sender_id = auth.uid() OR receiver_id = auth.uid());

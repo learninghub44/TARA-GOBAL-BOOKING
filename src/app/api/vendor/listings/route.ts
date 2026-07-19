@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requirePermission } from '@/lib/rbac/utils'
-import { requireTenant } from '@/lib/tenant/utils'
+import { requireActiveSubscription } from '@/lib/tenant/utils'
 import { tableForType } from '@/lib/listings/queries'
 import type { ListingType } from '@/types/listings'
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await requirePermission(type === 'tour' ? 'tours' : type === 'travel_service' ? 'travel_services' : type === 'car_rental' ? 'car_rentals' : 'adventure_activities', 'create')
-    const tenant = await requireTenant(user)
+    const tenant = await requireActiveSubscription(user)
 
     const supabase = await createClient()
     const table = tableForType(type)
@@ -114,7 +114,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ listing })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unexpected server error'
-    const status = message === 'Unauthorized' ? 401 : message.includes('permission') ? 403 : 500
+    const status =
+      message === 'Unauthorized'
+        ? 401
+        : message.includes('permission')
+        ? 403
+        : message === 'Active subscription required'
+        ? 402
+        : 500
     return NextResponse.json({ error: message }, { status })
   }
 }

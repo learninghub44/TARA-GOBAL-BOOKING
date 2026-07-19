@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -53,6 +54,16 @@ function redirectTo(url: string) {
 }
 
 export default function VendorSubscriptionPage() {
+  return (
+    <Suspense fallback={null}>
+      <VendorSubscriptionPageInner />
+    </Suspense>
+  )
+}
+
+function VendorSubscriptionPageInner() {
+  const params = useSearchParams()
+  const required = params.get('required') === '1'
   const [selectedPlan, setSelectedPlan] = useState<string>('quarterly')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
@@ -114,6 +125,14 @@ export default function VendorSubscriptionPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
+      {required && (
+        <Alert className="mb-8">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            An active subscription is required before you can publish listings. Choose a plan below to unlock listing creation.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="text-center mb-10">
         <h1 className="text-3xl font-bold">Choose your TARA vendor plan</h1>
         <p className="text-muted-foreground mt-2">

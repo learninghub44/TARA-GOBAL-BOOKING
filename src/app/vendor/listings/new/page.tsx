@@ -44,6 +44,10 @@ function NewListingForm() {
         body: JSON.stringify(payload),
       })
       const data = await res.json()
+      if (res.status === 402) {
+        router.push('/vendor/subscription?required=1')
+        return
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to create listing')
       router.push('/vendor/dashboard')
     } catch (err) {

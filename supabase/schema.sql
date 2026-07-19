@@ -753,3 +753,28 @@ $$ LANGUAGE plpgsql;
 -- Trigger for transaction reference generation
 CREATE TRIGGER generate_payment_transaction_reference BEFORE INSERT ON payments
     FOR EACH ROW EXECUTE FUNCTION generate_transaction_reference();
+
+-- ============================================
+-- WEBRTC SIGNALS
+-- ============================================
+-- Transient signaling messages (offer/answer/ice-candidate/hangup) used to
+-- establish peer-to-peer WebRTC calls between conversation participants.
+-- Rows are short-lived: written by the caller, read once by the receiver via
+-- Realtime, and deleted by cleanupWebRTCSignals() when the call/conversation ends.
+
+CREATE TABLE webrtc_signals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    receiver_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    signal_type TEXT NOT NULL CHECK (signal_type IN ('offer', 'answer', 'ice-candidate', 'hangup')),
+    signal_data JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_webrtc_signals_receiver_id ON webrtc_signals(receiver_id);
+CREATE INDEX idx_webrtc_signals_conversation_id ON webrtc_signals(conversation_id);
+CREATE INDEX idx_webrtc_signals_created_at ON webrtc_signals(created_at);
+
+-- Signals are ephemeral; enable Realtime delivery
+ALTER PUBLICATION supabase_realtime ADD TABLE webrtc_signals;

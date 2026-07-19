@@ -37,6 +37,7 @@ export default function VendorDashboardPage() {
   const [recentBookings, setRecentBookings] = useState<any[]>([])
   const [listings, setListings] = useState<any[]>([])
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'approved' | 'rejected' | 'manual_review'>('pending')
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'inactive' | 'past_due' | 'cancelled' | 'expired'>('inactive')
 
   const supabase = createClient()
 
@@ -68,12 +69,13 @@ export default function VendorDashboardPage() {
       // Get tenant verification status
       const { data: tenant } = await supabase
         .from('tenants')
-        .select('verification_status, total_listings, rating')
+        .select('verification_status, subscription_status, total_listings, rating')
         .eq('id', userData.tenant_id)
         .single()
 
       if (tenant) {
         setVerificationStatus(tenant.verification_status)
+        setSubscriptionStatus(tenant.subscription_status)
       }
 
       // Get stats + full rows for rendering real listing cards (no mock data)
@@ -162,6 +164,19 @@ export default function VendorDashboardPage() {
                   <CheckCircle className="h-3 w-3 mr-1" />
                   Verified
                 </Badge>
+              )}
+              {subscriptionStatus === 'active' ? (
+                <Badge variant="default" className="bg-green-600">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Subscription active
+                </Badge>
+              ) : (
+                <Link href="/vendor/subscription">
+                  <Badge variant="outline" className="border-amber-500 text-amber-700 cursor-pointer">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    {subscriptionStatus === 'past_due' ? 'Payment past due' : 'Subscribe to publish listings'}
+                  </Badge>
+                </Link>
               )}
             </div>
           </div>
@@ -389,22 +404,22 @@ export default function VendorDashboardPage() {
                       Create New Tour
                     </Button>
                   </Link>
-                  <Link href="/vendor/car-rentals/new">
+                  <Link href="/vendor/listings/new?type=car_rental">
                     <Button variant="outline" className="w-full justify-start">
                       <Plus className="h-4 w-4 mr-2" />
                       Create Car Rental
                     </Button>
                   </Link>
-                  <Link href="/vendor/adventures/new">
+                  <Link href="/vendor/listings/new?type=adventure">
                     <Button variant="outline" className="w-full justify-start">
                       <Plus className="h-4 w-4 mr-2" />
                       Create Adventure
                     </Button>
                   </Link>
-                  <Link href="/vendor/settings">
+                  <Link href="/vendor/subscription">
                     <Button variant="outline" className="w-full justify-start">
                       <TrendingUp className="h-4 w-4 mr-2" />
-                      Business Settings
+                      Manage Subscription
                     </Button>
                   </Link>
                 </CardContent>
