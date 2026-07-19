@@ -514,6 +514,18 @@ export async function processPaymentWebhook(
         .eq('id', payment.subscription_id)
     }
 
+    // Promotion purchases (Phase 6) — same webhook path, separate record.
+    // Dynamic import avoids a circular dependency (promotions/service.ts
+    // itself calls into this file to initialize the payment).
+    if (payment.promotion_id) {
+      const { activatePromotion, markPromotionPaymentFailed } = await import('@/lib/promotions/service')
+      if (success) {
+        await activatePromotion(payment.promotion_id)
+      } else {
+        await markPromotionPaymentFailed(payment.promotion_id)
+      }
+    }
+
     return { success: true, reference }
   } catch (error) {
     console.error('Webhook processing error:', error)
