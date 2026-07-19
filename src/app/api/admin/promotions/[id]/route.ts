@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requirePlatformAdmin } from '@/lib/rbac/utils'
+import { requirePlatformAdminRole } from '@/lib/rbac/utils'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const ALLOWED_ACTIONS = ['approve', 'reject'] as const
@@ -8,7 +8,7 @@ type Action = (typeof ALLOWED_ACTIONS)[number]
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    await requirePlatformAdmin()
+    await requirePlatformAdminRole(['super_admin'])
 
     const supabase = createAdminClient()
     const { data: promotion, error } = await supabase
@@ -43,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'reason is required when rejecting' }, { status: 400 })
     }
 
-    const admin = await requirePlatformAdmin()
+    const admin = await requirePlatformAdminRole(['super_admin'])
     const supabase = createAdminClient()
 
     const { data: promotion, error: fetchError } = await supabase

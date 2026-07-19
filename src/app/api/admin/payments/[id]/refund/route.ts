@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requirePlatformAdmin } from '@/lib/rbac/utils'
+import { requirePlatformAdminRole } from '@/lib/rbac/utils'
 import { refundPayment } from '@/lib/payments/service'
 import { logPaymentEvent, getClientIPAddress, getUserAgent } from '@/lib/audit/logger'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const admin = await requirePlatformAdmin()
+    const admin = await requirePlatformAdminRole(['finance_admin'])
     const { id } = await params
     const body = await request.json().catch(() => ({}))
     const { amount, reason } = body

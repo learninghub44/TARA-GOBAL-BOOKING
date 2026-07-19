@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requirePlatformAdmin } from '@/lib/rbac/utils'
+import { requirePlatformAdminRole } from '@/lib/rbac/utils'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyPayment, processPaymentWebhook, type PaymentProvider } from '@/lib/payments/service'
 
@@ -10,7 +10,7 @@ async function authorize(request: NextRequest): Promise<{ actorId: string | null
   if (cronSecret && process.env.CRON_SECRET && cronSecret === process.env.CRON_SECRET) {
     return { actorId: null }
   }
-  const admin = await requirePlatformAdmin()
+  const admin = await requirePlatformAdminRole(['finance_admin'])
   return { actorId: admin.id }
 }
 

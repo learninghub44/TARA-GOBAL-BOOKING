@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requirePlatformAdmin } from '@/lib/rbac/utils'
+import { requirePlatformAdminRole } from '@/lib/rbac/utils'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { AD_SCOPED_TYPES } from '@/lib/promotions/service'
 
 export async function GET(request: NextRequest) {
   try {
-    await requirePlatformAdmin()
+    await requirePlatformAdminRole(['super_admin'])
 
     const params = request.nextUrl.searchParams
     const status = params.get('status')

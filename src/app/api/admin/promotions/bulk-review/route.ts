@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requirePlatformAdmin } from '@/lib/rbac/utils'
+import { requirePlatformAdminRole } from '@/lib/rbac/utils'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { activatePromotion } from '@/lib/promotions/service'
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'reason is required when rejecting' }, { status: 400 })
     }
 
-    const admin = await requirePlatformAdmin()
+    const admin = await requirePlatformAdminRole(['super_admin'])
     const supabase = createAdminClient()
     const results: BulkResult[] = []
 
