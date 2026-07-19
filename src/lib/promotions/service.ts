@@ -187,6 +187,72 @@ export async function purchasePromotion(
 }
 
 /**
+ * Call this from the payment webhook hook on success — NOT activatePromotion
+ * directly. For listing/destination/badge promotions there's no review
+ * step, so this just activates immediately (unchanged behavior). Ad-scoped
+ * campaigns (banner/newsletter/search — anything with real creative and a
+ * vendor-supplied landing_url) instead go on hold at 'pending_review':
+ * payment is recorded and invoiced now, but the campaign only actually
+ * starts serving once a platform admin approves it via
+ * PATCH /api/admin/promotions/[id].
+ */
+export async function recordPromotionPaymentCompleted(promotionId: string): Promise<void> {
+  const supabase = createAdminClient()
+
+  const { data: promotion, error } = await supabase
+    .from('vendor_promotions')
+    .select('*')
+    .eq('id', promotionId)
+    .maybeSingle()
+
+  if (error || !promotion) {
+    console.error('recordPromotionPaymentCompleted: promotion not found', promotionId, error)
+    return
+  }
+
+  if (!AD_SCOPED_TYPES.has(promotion.promotion_type)) {
+    await activatePromotion(promotionId)
+    return
+  }
+
+  await supabase.from('promotion_payments').update({ status: 'completed' }).eq('vendor_promotion_id', promotionId)
+
+  const { data: existingInvoice } = await supabase
+    .from('promotion_invoices')
+    .select('id')
+    .eq('vendor_promotion_id', promotionId)
+    .maybeSingle()
+
+  if (!existingInvoice) {
+    await supabase.from('promotion_invoices').insert({
+      vendor_promotion_id: promotionId,
+      tenant_id: promotion.tenant_id,
+      amount: promotion.cost,
+      currency: promotion.currency,
+      status: 'completed',
+      paid_at: new Date().toISOString(),
+    })
+  }
+
+  // advertisements.status is already 'pending_review' from purchasePromotion
+  // — leave both it and vendor_promotions.status ('pending') alone here.
+  await supabase.from('promotion_events').insert({
+    tenant_id: promotion.tenant_id,
+    vendor_promotion_id: promotionId,
+    advertisement_id: promotion.advertisement_id,
+    event_type: 'advertisement_payment_received',
+    message: 'Payment received — your advertisement is awaiting review before it goes live.',
+  })
+
+  await supabase.from('audit_logs').insert({
+    tenant_id: promotion.tenant_id,
+    action: 'promotion.payment_received_pending_review',
+    table_name: 'vendor_promotions',
+    record_id: promotionId,
+  })
+}
+
+/**
  * Called from the payment webhook hook once a promotion payment settles.
  * Activates the campaign, sets its window, and (for listing-scoped types)
  * materializes a featured_listings row and flips the listing's is_featured
@@ -269,14 +335,22 @@ export async function activatePromotion(promotionId: string): Promise<void> {
 
   await supabase.from('promotion_payments').update({ status: 'completed' }).eq('vendor_promotion_id', promotion.id)
 
-  await supabase.from('promotion_invoices').insert({
-    vendor_promotion_id: promotion.id,
-    tenant_id: promotion.tenant_id,
-    amount: promotion.cost,
-    currency: promotion.currency,
-    status: 'completed',
-    paid_at: startDate.toISOString(),
-  })
+  const { data: existingInvoice } = await supabase
+    .from('promotion_invoices')
+    .select('id')
+    .eq('vendor_promotion_id', promotion.id)
+    .maybeSingle()
+
+  if (!existingInvoice) {
+    await supabase.from('promotion_invoices').insert({
+      vendor_promotion_id: promotion.id,
+      tenant_id: promotion.tenant_id,
+      amount: promotion.cost,
+      currency: promotion.currency,
+      status: 'completed',
+      paid_at: startDate.toISOString(),
+    })
+  }
 
   await supabase.from('promotion_events').insert({
     tenant_id: promotion.tenant_id,

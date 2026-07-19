@@ -518,9 +518,9 @@ export async function processPaymentWebhook(
     // Dynamic import avoids a circular dependency (promotions/service.ts
     // itself calls into this file to initialize the payment).
     if (payment.promotion_id) {
-      const { activatePromotion, markPromotionPaymentFailed } = await import('@/lib/promotions/service')
+      const { recordPromotionPaymentCompleted, markPromotionPaymentFailed } = await import('@/lib/promotions/service')
       if (success) {
-        await activatePromotion(payment.promotion_id)
+        await recordPromotionPaymentCompleted(payment.promotion_id)
       } else {
         await markPromotionPaymentFailed(payment.promotion_id)
       }
