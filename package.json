@@ -1,7 +1,10 @@
 {
   "name": "tara",
   "version": "0.1.0",
+  "description": "TARA — a multi-tenant marketplace for tours, travel services, car rentals, and adventure activities across East Africa.",
   "private": true,
+  "author": "Chris Odhiambo <chrisodhiambo958@gmail.com> (https://github.com/learninghub44)",
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
