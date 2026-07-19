@@ -14,12 +14,16 @@ interface ChatMessage {
 
 interface ChatWindowProps {
   conversationId: string
-  /** Required for guest customers so the API can verify identity; omit for logged-in staff. */
-  customerEmail?: string
+  /**
+   * Guest customers: pass the access_token returned by POST /api/conversations
+   * (persist it, e.g. in localStorage -- it's the credential for this thread).
+   * Omit for logged-in staff, who are authorized by their session instead.
+   */
+  accessToken?: string
   currentSenderType: 'customer' | 'staff'
 }
 
-export function ChatWindow({ conversationId, customerEmail, currentSenderType }: ChatWindowProps) {
+export function ChatWindow({ conversationId, accessToken, currentSenderType }: ChatWindowProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
@@ -30,10 +34,9 @@ export function ChatWindow({ conversationId, customerEmail, currentSenderType }:
     let cancelled = false
 
     async function loadMessages() {
-      const url = customerEmail
-        ? `/api/conversations/${conversationId}/messages?email=${encodeURIComponent(customerEmail)}`
-        : `/api/conversations/${conversationId}/messages`
-      const res = await fetch(url)
+      const res = await fetch(`/api/conversations/${conversationId}/messages`, {
+        headers: accessToken ? { 'x-conversation-token': accessToken } : undefined,
+      })
       if (!res.ok || cancelled) return
       const data = await res.json()
       setMessages(data.messages ?? [])
@@ -44,9 +47,9 @@ export function ChatWindow({ conversationId, customerEmail, currentSenderType }:
 
     // Realtime postgres_changes is RLS-gated, so it only delivers events to
     // an authenticated session (staff, or a logged-in customer). Guest
-    // customers (identified only by email, no auth.uid()) fall back to
+    // customers (identified by an access token, no auth.uid()) fall back to
     // short-interval polling instead.
-    if (customerEmail) {
+    if (accessToken) {
       const interval = setInterval(loadMessages, 4000)
       return () => {
         cancelled = true
@@ -71,7 +74,7 @@ export function ChatWindow({ conversationId, customerEmail, currentSenderType }:
       cancelled = true
       supabase.removeChannel(channel)
     }
-  }, [conversationId, customerEmail])
+  }, [conversationId, accessToken])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -84,8 +87,11 @@ export function ChatWindow({ conversationId, customerEmail, currentSenderType }:
     try {
       const res = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: draft.trim(), customer_email: customerEmail }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { 'x-conversation-token': accessToken } : {}),
+        },
+        body: JSON.stringify({ content: draft.trim() }),
       })
       if (res.ok) {
         const data = await res.json()

@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
 
     const { data: existing } = await supabase
       .from('conversations')
-      .select('id')
+      .select('id, access_token')
       .eq('booking_id', booking.id)
       .maybeSingle()
 
     if (existing) {
-      return NextResponse.json({ conversation_id: existing.id, created: false })
+      return NextResponse.json({ conversation_id: existing.id, access_token: existing.access_token, created: false })
     }
 
     const { data: created, error } = await supabase
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         subject: subject || `Booking ${booking.id.slice(0, 8)}`,
         is_active: true,
       })
-      .select('id')
+      .select('id, access_token')
       .single()
 
     if (error || !created) {
@@ -65,7 +65,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })
     }
 
-    return NextResponse.json({ conversation_id: created.id, created: true })
+    // access_token is the credential the client should hold onto (e.g.
+    // localStorage) for all subsequent GET/POST calls on this conversation
+    // -- it's issued once here, over this authenticated (email-matched) call.
+    return NextResponse.json({ conversation_id: created.id, access_token: created.access_token, created: true })
   } catch (error) {
     console.error('Conversation create error:', error)
     return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })

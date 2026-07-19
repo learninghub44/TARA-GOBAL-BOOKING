@@ -7,8 +7,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params
     const customerEmail = request.nextUrl.searchParams.get('email')
+    const accessToken = request.headers.get('x-conversation-token') ?? request.nextUrl.searchParams.get('token')
 
-    const access = await authorizeConversationAccess(id, customerEmail)
+    const access = await authorizeConversationAccess(id, { customerEmail, accessToken })
     if (!access) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
@@ -49,13 +50,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const { id } = await params
     const body = await request.json().catch(() => null)
-    const { content, customer_email } = body ?? {}
+    const { content, customer_email, access_token } = body ?? {}
 
     if (!content || typeof content !== 'string' || !content.trim() || content.length > 4000) {
       return NextResponse.json({ error: 'content is required (max 4000 chars)' }, { status: 400 })
     }
 
-    const access = await authorizeConversationAccess(id, customer_email)
+    const headerToken = request.headers.get('x-conversation-token')
+    const access = await authorizeConversationAccess(id, {
+      customerEmail: customer_email,
+      accessToken: access_token ?? headerToken,
+    })
     if (!access) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }

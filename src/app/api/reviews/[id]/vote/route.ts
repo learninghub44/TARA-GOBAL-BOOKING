@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHash } from 'crypto'
+import { createHmac } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { enforceRateLimit, getClientIdentifier } from '@/lib/security/rate-limit'
 
 const VALID_VOTE_TYPES = ['helpful', 'not_helpful'] as const
 type VoteType = (typeof VALID_VOTE_TYPES)[number]
 
-/** Anonymous voters are identified by a salted hash of their IP, so we never store raw IPs. */
+/**
+ * Anonymous voters are identified by a keyed hash of their IP, so we never
+ * store raw IPs. A *plain* hash (no key) would be reversible -- IPv4 is only
+ * ~4 billion addresses, small enough to rainbow-table -- so this is HMAC'd
+ * with the service role key (already a server-only secret) instead of a
+ * bare digest.
+ */
 function voterIdentifierFor(request: NextRequest): string {
   const ip = getClientIdentifier(request)
-  return createHash('sha256').update(`review-vote:${ip}`).digest('hex')
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || 'fallback-review-vote-secret'
+  return createHmac('sha256', secret).update(`review-vote:${ip}`).digest('hex')
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
