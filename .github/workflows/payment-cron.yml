@@ -1,0 +1,30 @@
+name: Payment reconciliation & subscription reminders
+
+on:
+  schedule:
+    # Reconcile stale pending payments every 20 minutes
+    - cron: '*/20 * * * *'
+    # Subscription reminders/expiry once a day at 06:00 UTC (~09:00 EAT)
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  reconcile-payments:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '*/20 * * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Reconcile stale pending payments
+        run: |
+          curl -sf -X POST "${{ secrets.APP_URL }}/api/admin/payments/reconcile" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -o - -w "\nHTTP %{http_code}\n"
+
+  subscription-reminders:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 6 * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Send renewal reminders and expire overdue subscriptions
+        run: |
+          curl -sf -X POST "${{ secrets.APP_URL }}/api/cron/subscriptions" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -o - -w "\nHTTP %{http_code}\n"
