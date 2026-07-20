@@ -3,9 +3,37 @@ import AIAssistant from '@/components/AIAssistant'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Search, MapPin, Star, ArrowRight, Mountain, Plane, Car, Tent } from 'lucide-react'
+import { Search, MapPin, Star, ArrowRight } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { getListings } from '@/lib/listings/queries'
+
+const CATEGORY_TILES = [
+  {
+    href: '/tours',
+    label: 'Tours',
+    description: 'Guided tours and experiences',
+    image: 'https://images.unsplash.com/photo-1551632811-561732d1e306',
+  },
+  {
+    href: '/travel-services',
+    label: 'Travel Services',
+    description: 'Flights, hotels, and assistance',
+    image: 'https://images.unsplash.com/photo-1500835556837-99ac94a94552',
+  },
+  {
+    href: '/car-rentals',
+    label: 'Car Rentals',
+    description: 'Rent vehicles for your journey',
+    image: 'https://images.unsplash.com/photo-1614414827233-e53d9d81aef8',
+  },
+  {
+    href: '/adventures',
+    label: 'Adventures',
+    description: 'Thrilling activities and experiences',
+    image: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75',
+  },
+]
 
 export default async function Home() {
   const featured = await getListings({ featuredOnly: true, limit: 3 })
@@ -65,57 +93,26 @@ export default async function Home() {
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Explore by Category</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Link href="/tours">
-              <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="h-48 bg-gradient-to-br from-slate-800 to-slate-950 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors" />
-                    <Mountain className="h-16 w-16 text-blue-400 relative z-10" strokeWidth={1.5} />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">Tours</h3>
-                  <p className="text-gray-600">Guided tours and experiences</p>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link href="/travel-services">
-              <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="h-48 bg-gradient-to-br from-slate-800 to-slate-950 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors" />
-                    <Plane className="h-16 w-16 text-emerald-400 relative z-10" strokeWidth={1.5} />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">Travel Services</h3>
-                  <p className="text-gray-600">Flights, hotels, and assistance</p>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link href="/car-rentals">
-              <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="h-48 bg-gradient-to-br from-slate-800 to-slate-950 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors" />
-                    <Car className="h-16 w-16 text-orange-400 relative z-10" strokeWidth={1.5} />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">Car Rentals</h3>
-                  <p className="text-gray-600">Rent vehicles for your journey</p>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link href="/adventures">
-              <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  <div className="h-48 bg-gradient-to-br from-slate-800 to-slate-950 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors" />
-                    <Tent className="h-16 w-16 text-purple-400 relative z-10" strokeWidth={1.5} />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">Adventures</h3>
-                  <p className="text-gray-600">Thrilling activities and experiences</p>
-                </CardContent>
-              </Card>
-            </Link>
+            {CATEGORY_TILES.map((tile) => (
+              <Link key={tile.href} href={tile.href}>
+                <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="h-48 rounded-lg mb-4 relative overflow-hidden">
+                      <Image
+                        src={`${tile.image}?w=800&q=80&auto=format&fit=crop`}
+                        alt={tile.label}
+                        fill
+                        sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">{tile.label}</h3>
+                    <p className="text-gray-600">{tile.description}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         </div>
       </section>

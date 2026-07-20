@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Star, MapPin, Search } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { getListings } from '@/lib/listings/queries'
 import type { ListingType } from '@/types/listings'
@@ -13,6 +14,20 @@ const TYPE_LABELS: Record<ListingType, string> = {
   travel_service: 'Travel Service',
   car_rental: 'Car Rental',
   adventure: 'Adventure',
+}
+
+const TYPE_HERO_IMAGES: Record<ListingType, string> = {
+  tour: 'https://images.unsplash.com/photo-1551632811-561732d1e306',
+  travel_service: 'https://images.unsplash.com/photo-1500835556837-99ac94a94552',
+  car_rental: 'https://images.unsplash.com/photo-1614414827233-e53d9d81aef8',
+  adventure: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75',
+}
+
+const TYPE_HEADINGS: Record<ListingType, string> = {
+  tour: 'Explore Tours',
+  travel_service: 'Explore Travel Services',
+  car_rental: 'Explore Car Rentals',
+  adventure: 'Explore Adventures',
 }
 
 const TYPE_TABS: { value: ListingType | 'all'; label: string }[] = [
@@ -40,10 +55,25 @@ export default async function ListingsPage({
     <div className="min-h-screen bg-gray-50 md:pl-20">
       <Navigation />
 
-      <section className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 py-12">
-        <div className="max-w-6xl mx-auto px-4">
+      <section className="relative overflow-hidden py-12">
+        {type ? (
+          <>
+            <Image
+              src={`${TYPE_HERO_IMAGES[type]}?w=1600&q=80&auto=format&fit=crop`}
+              alt={TYPE_HEADINGS[type]}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-black/50" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700" />
+        )}
+        <div className="relative max-w-6xl mx-auto px-4">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Explore Tours, Rentals &amp; Adventures
+            {type ? TYPE_HEADINGS[type] : 'Explore Tours, Rentals & Adventures'}
           </h1>
           <form className="flex flex-col md:flex-row gap-3 max-w-2xl" action="/listings">
             <div className="relative flex-1">
