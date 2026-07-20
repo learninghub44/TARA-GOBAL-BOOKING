@@ -23,7 +23,7 @@ export default function ListingImage({
   src,
   alt,
   className = 'w-full h-full object-cover',
-  fallbackClassName = 'w-full h-full flex items-center justify-center bg-gradient-to-br from-teal-400 to-teal-600',
+  fallbackClassName = 'w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-navy to-brand-ember',
 }: ListingImageProps) {
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(src ? 'loading' : 'error')
 

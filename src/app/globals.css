@@ -8,11 +8,15 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-deep: var(--brand-navy-deep);
   --color-brand-gold: var(--brand-gold);
   --color-brand-orange: var(--brand-orange);
+  --color-brand-ember: var(--brand-ember);
+  --color-brand-sand: var(--brand-sand);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
+  --font-display: var(--font-fraunces);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -52,10 +56,15 @@
 }
 
 :root {
-  /* TARA brand palette, sampled from the logo (navy / gold / orange) */
+  /* TARA brand palette, sampled from the logo (navy / gold / orange),
+     extended with a dusk navy, a burnt-ember accent, and a sand neutral
+     for the homepage's horizon-at-dusk motif. */
   --brand-navy: #102a43;
+  --brand-navy-deep: #0a1f38;
   --brand-gold: #ae8033;
   --brand-orange: #f09123;
+  --brand-ember: #c1440e;
+  --brand-sand: #f3ead8;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -134,5 +143,67 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Homepage motion system — a slow dusk sky-drift, gentle campfire glow
+   for destination markers, and a soft rise used for scroll reveals.
+   Kept subtle by design: ambient, not flashy. Respects reduced motion.
+   --------------------------------------------------------------------- */
+@layer utilities {
+  @keyframes sky-drift {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.35);
+    }
+  }
+
+  @keyframes drift-slow {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(-1.5%, -1%, 0);
+    }
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .animate-sky-drift {
+    background-size: 200% 200%;
+    animation: sky-drift 18s ease-in-out infinite;
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 3.4s ease-in-out infinite;
+  }
+
+  .animate-drift-slow {
+    animation: drift-slow 24s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-sky-drift,
+    .animate-glow-pulse,
+    .animate-drift-slow {
+      animation: none;
+    }
   }
 }

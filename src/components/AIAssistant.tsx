@@ -105,7 +105,7 @@ export default function AIAssistant() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-50"
+        className="fixed bottom-20 right-4 z-50 rounded-full bg-brand-navy p-4 text-white shadow-lg transition-colors hover:bg-brand-ember sm:bottom-6 sm:right-6"
         aria-label="Open AI Assistant"
       >
         <MessageCircle className="h-6 w-6" />
@@ -114,7 +114,7 @@ export default function AIAssistant() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 max-w-[calc(100vw-2rem)] z-50">
+    <div className="fixed bottom-20 right-4 z-50 w-96 max-w-[calc(100vw-2rem)] sm:bottom-6 sm:right-6">
       <Card className="shadow-2xl">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="text-lg">TARA Assistant</CardTitle>
