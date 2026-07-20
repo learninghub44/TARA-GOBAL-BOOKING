@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { useInView, useMotionValue, useSpring } from 'framer-motion'
+import { useInView, animate } from 'framer-motion'
 
 interface AnimatedCounterProps {
   value: number
@@ -14,18 +14,19 @@ interface AnimatedCounterProps {
 export default function AnimatedCounter({ value, suffix = '', className }: AnimatedCounterProps) {
   const ref = useRef<HTMLSpanElement>(null)
   const inView = useInView(ref, { once: true, margin: '-10%' })
-  const motionValue = useMotionValue(0)
-  const spring = useSpring(motionValue, { duration: 1200, bounce: 0 })
 
   useEffect(() => {
-    if (inView) motionValue.set(value)
-  }, [inView, value, motionValue])
-
-  useEffect(() => {
-    return spring.on('change', (latest) => {
-      if (ref.current) ref.current.textContent = `${Math.round(latest)}${suffix}`
+    if (!inView || !ref.current) return
+    const node = ref.current
+    const controls = animate(0, value, {
+      duration: 1.4,
+      ease: [0.22, 1, 0.36, 1],
+      onUpdate(latest) {
+        node.textContent = `${Math.round(latest)}${suffix}`
+      },
     })
-  }, [spring, suffix])
+    return () => controls.stop()
+  }, [inView, value, suffix])
 
   return (
     <span ref={ref} className={className}>
