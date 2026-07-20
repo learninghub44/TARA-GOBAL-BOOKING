@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import Link from 'next/link'
 
-export default function SubscriptionCallbackPage() {
+function SubscriptionCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<'checking' | 'completed' | 'failed' | 'pending'>('checking')
@@ -85,5 +85,13 @@ export default function SubscriptionCallbackPage() {
         </>
       )}
     </div>
+  )
+}
+
+export default function SubscriptionCallbackPage() {
+  return (
+    <Suspense fallback={null}>
+      <SubscriptionCallbackContent />
+    </Suspense>
   )
 }
