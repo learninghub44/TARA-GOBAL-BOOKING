@@ -37,7 +37,7 @@ export default async function ListingsPage({
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 md:pl-20">
       <Navigation />
 
       <section className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 py-12">

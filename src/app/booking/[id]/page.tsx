@@ -26,7 +26,7 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
     .single()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 md:pl-20">
       <Navigation />
       <section className="max-w-2xl mx-auto px-4 py-12">
         <Card>

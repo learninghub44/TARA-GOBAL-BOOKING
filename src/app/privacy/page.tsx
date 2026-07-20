@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card'
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 md:pl-20">
       <Navigation />
       <section className="max-w-3xl mx-auto px-4 py-16">
         <h1 className="text-4xl font-bold mb-6">Privacy Policy</h1>

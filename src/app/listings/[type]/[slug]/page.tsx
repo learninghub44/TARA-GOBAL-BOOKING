@@ -31,7 +31,7 @@ export default async function ListingDetailPage({
   const images = [listing.primary_image_url, ...(listing.gallery_urls || [])].filter(Boolean) as string[]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 md:pl-20">
       <Navigation />
 
       <section className="relative h-[360px] bg-gradient-to-br from-blue-500 to-purple-600 overflow-hidden">

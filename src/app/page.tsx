@@ -11,7 +11,7 @@ export default async function Home() {
   const featured = await getListings({ featuredOnly: true, limit: 3 })
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white md:pl-20">
       <Navigation />
       <AIAssistant />
       
