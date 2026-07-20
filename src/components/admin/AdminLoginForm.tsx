@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, ShieldCheck } from 'lucide-react'
 import { PlatformAdminRole } from '@/types/rbac'
@@ -77,26 +77,52 @@ export function AdminLoginForm({ portalRole, label, description, dashboardPath }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-700 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex justify-center mb-2">
-            <div className="rounded-full bg-slate-900 p-3">
-              <ShieldCheck className="h-6 w-6 text-white" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-brand-navy-deep px-4 py-12">
+      {/* Ambient ops-console backdrop -- same dusk motion system as the rest
+          of the site, without the travel photography, since this is an
+          internal tool, not a marketing surface. */}
+      <div className="animate-sky-drift absolute inset-0 bg-gradient-to-br from-brand-navy-deep via-brand-navy to-brand-navy-deep bg-[length:200%_200%]" />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }}
+      />
+      <div className="animate-drift-slow absolute -top-24 left-[-8%] h-[360px] w-[360px] rounded-full bg-brand-gold/15 blur-[110px]" />
+      <div
+        className="animate-drift-slow absolute -bottom-24 right-[-8%] h-[360px] w-[360px] rounded-full bg-brand-orange/15 blur-[110px]"
+        style={{ animationDelay: '5s' }}
+      />
+
+      <div className="relative z-10 w-full max-w-sm">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Image src="/logo-icon.png" alt="" width={36} height={36} className="mb-4 h-9 w-9" />
+          <span className="font-mono text-xs uppercase tracking-[0.25em] text-white/50">TARA · Internal</span>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-8 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-gold/15 text-brand-gold">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="font-display text-lg font-medium text-white">{label}</h1>
+              <p className="text-xs text-white/60">{description}</p>
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">{label}</CardTitle>
-          <CardDescription className="text-center">{description}</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleLogin}>
-          <CardContent className="space-y-4">
+
+          <form onSubmit={handleLogin} className="space-y-4">
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="border-brand-ember/40 bg-brand-ember/10 text-white [&_svg]:text-brand-ember">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-xs uppercase tracking-wide text-white/70">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -105,10 +131,13 @@ export function AdminLoginForm({ portalRole, label, description, dashboardPath }
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="username"
+                className="h-11 border-white/15 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-brand-gold/60 focus-visible:ring-brand-gold/30"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-xs uppercase tracking-wide text-white/70">
+                Password
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -116,16 +145,24 @@ export function AdminLoginForm({ portalRole, label, description, dashboardPath }
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
+                className="h-11 border-white/15 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-brand-gold/60 focus-visible:ring-brand-gold/30"
               />
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-3">
-            <Button type="submit" className="w-full" disabled={loading}>
+
+            <Button
+              type="submit"
+              className="h-11 w-full bg-brand-gold text-brand-navy-deep hover:bg-brand-gold/90"
+              disabled={loading}
+            >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : `Sign in as ${label}`}
             </Button>
-          </CardFooter>
-        </form>
-      </Card>
+          </form>
+        </div>
+
+        <p className="mt-6 text-center font-mono text-[0.65rem] uppercase tracking-[0.15em] text-white/30">
+          Restricted access · Authorized personnel only
+        </p>
+      </div>
     </div>
   )
 }

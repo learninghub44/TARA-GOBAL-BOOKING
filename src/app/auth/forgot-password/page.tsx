@@ -4,16 +4,16 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import AuthShell from '@/components/auth/AuthShell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
-  
+
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -46,87 +46,85 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <div className="flex justify-center mb-4">
-              <CheckCircle2 className="h-16 w-16 text-green-500" />
-            </div>
-            <CardTitle className="text-2xl font-bold text-center">Check your email</CardTitle>
-            <CardDescription className="text-center">
-              We've sent a password reset link to {email}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <AlertDescription>
-                Please click the link in the email to reset your password. The link will expire in 24 hours.
-              </AlertDescription>
-            </Alert>
-            <Button
-              className="w-full"
-              variant="outline"
-              onClick={() => router.push('/auth/login')}
-            >
-              Back to login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <AuthShell
+        eyebrow="Password reset"
+        headline={
+          <>
+            Link sent — <span className="italic text-brand-orange">check your inbox.</span>
+          </>
+        }
+        copy="The reset link expires in 24 hours. If it doesn't arrive in a few minutes, check spam."
+        image="https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1400&q=80&auto=format&fit=crop"
+        imageAlt="Savanna landscape at dusk"
+      >
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-navy/10">
+          <CheckCircle2 className="h-5 w-5 text-brand-navy" />
+        </div>
+        <h1 className="mt-5 font-display text-3xl font-medium text-brand-navy">Check your email</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          We&apos;ve sent a password reset link to <span className="font-medium text-foreground">{email}</span>.
+        </p>
+        <Button className="mt-8 h-11 w-full" variant="outline" onClick={() => router.push('/auth/login')}>
+          Back to login
+        </Button>
+      </AuthShell>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Reset your password</CardTitle>
-          <CardDescription className="text-center">
-            Enter your email address and we'll send you a reset link
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
+    <AuthShell
+      eyebrow="Password reset"
+      headline={
+        <>
+          Locked out? <span className="italic text-brand-orange">Let&apos;s fix that.</span>
+        </>
+      }
+      copy="Enter the email on your account and we'll send a link to set a new password."
+      image="https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1400&q=80&auto=format&fit=crop"
+      imageAlt="Savanna landscape at dusk"
+    >
+      <h1 className="font-display text-3xl font-medium text-brand-navy">Reset your password</h1>
+      <p className="mt-2 text-sm text-muted-foreground">We&apos;ll send you a reset link by email.</p>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending reset link...
-                </>
-              ) : (
-                'Send reset link'
-              )}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <div className="text-sm text-center text-muted-foreground">
-            Remember your password?{' '}
-            <Link href="/auth/login" className="text-blue-600 hover:underline">
-              Sign in
-            </Link>
-          </div>
-        </CardFooter>
-      </Card>
-    </div>
+      <form onSubmit={handleResetPassword} className="mt-8 space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="your@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+            className="h-11"
+          />
+        </div>
+
+        <Button type="submit" className="h-11 w-full bg-brand-navy text-white hover:bg-brand-navy/90" disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sending reset link...
+            </>
+          ) : (
+            'Send reset link'
+          )}
+        </Button>
+      </form>
+
+      <p className="mt-8 text-center text-sm text-muted-foreground">
+        Remember your password?{' '}
+        <Link href="/auth/login" className="font-medium text-brand-navy hover:underline">
+          Sign in
+        </Link>
+      </p>
+    </AuthShell>
   )
 }
