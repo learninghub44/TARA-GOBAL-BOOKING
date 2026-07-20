@@ -3,7 +3,7 @@ import AIAssistant from '@/components/AIAssistant'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Search, MapPin, Star, ArrowRight } from 'lucide-react'
+import { Search, MapPin, Star, ArrowRight, Mountain, Plane, Car, Tent } from 'lucide-react'
 import Link from 'next/link'
 import { getListings } from '@/lib/listings/queries'
 
@@ -68,8 +68,9 @@ export default async function Home() {
             <Link href="/tours">
               <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
-                  <div className="h-48 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 flex items-center justify-center">
-                    <span className="text-6xl">🏔️</span>
+                  <div className="h-48 bg-gradient-to-br from-slate-800 to-slate-950 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors" />
+                    <Mountain className="h-16 w-16 text-blue-400 relative z-10" strokeWidth={1.5} />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">Tours</h3>
                   <p className="text-gray-600">Guided tours and experiences</p>
@@ -80,8 +81,9 @@ export default async function Home() {
             <Link href="/travel-services">
               <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
-                  <div className="h-48 bg-gradient-to-br from-green-400 to-green-600 rounded-lg mb-4 flex items-center justify-center">
-                    <span className="text-6xl">✈️</span>
+                  <div className="h-48 bg-gradient-to-br from-slate-800 to-slate-950 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors" />
+                    <Plane className="h-16 w-16 text-emerald-400 relative z-10" strokeWidth={1.5} />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">Travel Services</h3>
                   <p className="text-gray-600">Flights, hotels, and assistance</p>
@@ -92,8 +94,9 @@ export default async function Home() {
             <Link href="/car-rentals">
               <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
-                  <div className="h-48 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg mb-4 flex items-center justify-center">
-                    <span className="text-6xl">🚗</span>
+                  <div className="h-48 bg-gradient-to-br from-slate-800 to-slate-950 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors" />
+                    <Car className="h-16 w-16 text-orange-400 relative z-10" strokeWidth={1.5} />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">Car Rentals</h3>
                   <p className="text-gray-600">Rent vehicles for your journey</p>
@@ -104,8 +107,9 @@ export default async function Home() {
             <Link href="/adventures">
               <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
-                  <div className="h-48 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg mb-4 flex items-center justify-center">
-                    <span className="text-6xl">🎿</span>
+                  <div className="h-48 bg-gradient-to-br from-slate-800 to-slate-950 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors" />
+                    <Tent className="h-16 w-16 text-purple-400 relative z-10" strokeWidth={1.5} />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">Adventures</h3>
                   <p className="text-gray-600">Thrilling activities and experiences</p>
