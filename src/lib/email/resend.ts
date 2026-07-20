@@ -1,6 +1,13 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+let resend: Resend | null = null
+
+function getResendClient(): Resend {
+  if (!resend) {
+    resend = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resend
+}
 
 export interface EmailTemplate {
   to: string
@@ -13,7 +20,7 @@ export async function sendEmail(email: EmailTemplate): Promise<{ success: boolea
   try {
     const from = email.from || process.env.RESEND_FROM_EMAIL || 'noreply@tara.com'
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from,
       to: email.to,
       subject: email.subject,
