@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { getListingBySlug, listingPrice } from '@/lib/listings/queries'
 import type { ListingType, Tour, CarRental, AdventureActivity, TravelService, AnyListing } from '@/types/listings'
 import BookingForm from './booking-form'
+import ListingGallery from '@/components/listings/ListingGallery'
 
 const VALID_TYPES: ListingType[] = ['tour', 'travel_service', 'car_rental', 'adventure']
 
@@ -34,26 +35,19 @@ export default async function ListingDetailPage({
     <div className="min-h-screen bg-gray-50 md:pl-20">
       <Navigation />
 
-      <section className="relative h-[360px] bg-gradient-to-br from-blue-500 to-purple-600 overflow-hidden">
-        {images[0] && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={images[0]} alt={listing.title} className="w-full h-full object-cover" />
-        )}
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="absolute bottom-6 left-0 right-0 max-w-6xl mx-auto px-4">
-          <Badge className="mb-3 bg-white/90 text-gray-900 border-none">
-            {listingType.replace('_', ' ')}
-          </Badge>
-          <h1 className="text-3xl md:text-4xl font-bold text-white">{listing.title}</h1>
-          <div className="flex items-center gap-4 mt-2 text-white/90">
-            <span className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-              {listing.rating.toFixed(1)} ({listing.total_reviews} reviews)
-            </span>
-            <LocationLine type={listingType} listing={listing} />
-          </div>
+      <ListingGallery images={images} title={listing.title}>
+        <Badge className="mb-3 bg-white/90 text-gray-900 border-none">
+          {listingType.replace('_', ' ')}
+        </Badge>
+        <h1 className="text-3xl md:text-4xl font-bold text-white">{listing.title}</h1>
+        <div className="flex items-center gap-4 mt-2 text-white/90">
+          <span className="flex items-center gap-1">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+            {listing.rating.toFixed(1)} ({listing.total_reviews} reviews)
+          </span>
+          <LocationLine type={listingType} listing={listing} />
         </div>
-      </section>
+      </ListingGallery>
 
       <section className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">

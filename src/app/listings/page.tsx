@@ -8,6 +8,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { getListings } from '@/lib/listings/queries'
 import type { ListingType } from '@/types/listings'
+import ListingImage from '@/components/listings/ListingImage'
 
 const TYPE_LABELS: Record<ListingType, string> = {
   tour: 'Tour',
@@ -130,15 +131,12 @@ export default async function ListingsPage({
             {listings.map((listing) => (
               <Link key={`${listing.type}-${listing.id}`} href={`/listings/${listing.type}/${listing.slug}`}>
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full py-0">
-                  <div className="relative h-48 bg-gradient-to-br from-blue-400 to-purple-500">
-                    {listing.primary_image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={listing.primary_image_url}
-                        alt={listing.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : null}
+                  <div className="relative h-48">
+                    <ListingImage
+                      src={listing.primary_image_url}
+                      alt={listing.title}
+                      fallbackClassName="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-purple-500"
+                    />
                     {listing.is_featured && (
                       <Badge className="absolute top-3 left-3 bg-yellow-500 text-white border-none">
                         Featured

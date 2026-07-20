@@ -7,6 +7,7 @@ import { Search, MapPin, Star, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getListings } from '@/lib/listings/queries'
+import ListingImage from '@/components/listings/ListingImage'
 
 const CATEGORY_TILES = [
   {
@@ -126,15 +127,12 @@ export default async function Home() {
               {featured.map((listing) => (
                 <Link key={`${listing.type}-${listing.id}`} href={`/listings/${listing.type}/${listing.slug}`}>
                   <Card className="overflow-hidden group cursor-pointer h-full py-0">
-                    <div className="h-64 bg-gradient-to-br from-teal-400 to-teal-600 relative">
-                      {listing.primary_image_url && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={listing.primary_image_url}
-                          alt={listing.title}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
+                    <div className="h-64 relative">
+                      <ListingImage
+                        src={listing.primary_image_url}
+                        alt={listing.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
                     </div>
                     <CardContent className="p-6">
                       {listing.location && (
