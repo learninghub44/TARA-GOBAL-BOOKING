@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tara",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-07-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  }
+  // R2 bucket for uploads — uncomment and set bucket_name once created:
+  // "r2_buckets": [
+  //   { "binding": "UPLOADS", "bucket_name": "tara-uploads" }
+  // ],
+  // Cron trigger for /api/cron/subscriptions — uncomment if you want Workers
+  // Cron Triggers to hit it instead of an external scheduler:
+  // "triggers": {
+  //   "crons": ["0 3 * * *"]
+  // }
+}
